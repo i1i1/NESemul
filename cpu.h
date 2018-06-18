@@ -25,4 +25,5 @@ struct cpu {
 
 extern struct cpu reg;
 
+
 #endif /* _CPU_H_ */
