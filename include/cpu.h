@@ -25,5 +25,7 @@ struct cpu {
 
 extern struct cpu reg;
 
+void cpu_init();
+
 
 #endif /* _CPU_H_ */
