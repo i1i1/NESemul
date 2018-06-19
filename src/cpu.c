@@ -25,7 +25,7 @@ cpu_init()
 {
 	reg.PC = ram_getw(0xFFFC);
 
-	reg.SP = 0xFF;
+	reg.SP = 0xFD;
 	reg.A = reg.X = reg.Y = 0;
 	reg.P.C = reg.P.Z = reg.P.I = reg.P.D
 		= reg.P.B = reg.P.V = reg.P.N = 0;

@@ -40,7 +40,9 @@ addr_mode_zp()
 void
 addr_mode_zpx()
 {
-	todo();
+	cpu_addr = ram_getb(reg.PC) + reg.X;
+	reg.PC++;
+	cpu_arg = ram_getb(cpu_addr);
 }
 
 void
@@ -58,7 +60,11 @@ addr_mode_izx()
 void
 addr_mode_izy()
 {
-	todo();
+	cpu_addr = ram_getw(ram_getb(reg.PC)) + reg.Y;
+
+	reg.PC++;
+
+	cpu_arg = ram_getb(cpu_addr);
 }
 
 void
@@ -74,19 +80,36 @@ addr_mode_abs()
 void
 addr_mode_abx()
 {
-	todo();
+	cpu_addr = ram_getw(reg.PC) + reg.X;
+
+	reg.PC += 2;
+
+	cpu_arg = ram_getb(cpu_addr);
 }
 
 void
 addr_mode_aby()
 {
-	todo();
+	cpu_addr = ram_getw(reg.PC) + reg.Y;
+
+	reg.PC += 2;
+
+	cpu_arg = ram_getb(cpu_addr);
 }
 
 void
 addr_mode_rel()
 {
-	cpu_addr = reg.PC + ram_getb(reg.PC);
+	cpu_addr = reg.PC + 1 + (sbyte)ram_getb(reg.PC);
+
+	reg.PC++;
+
 	cpu_arg = ram_getb(cpu_addr);
+}
+
+void
+addr_mode_a()
+{
+	cpu_arg = reg.A;
 }
 

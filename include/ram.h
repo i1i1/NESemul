@@ -26,6 +26,12 @@ void ram_setb(word addr, byte b);
 byte ram_general_getb(word addr);
 void ram_general_setb(word addr, byte b);
 
+/* Some stack rutines */
+void ram_pushb(byte b);
+void ram_pushw(word w);
+byte ram_popb();
+word ram_popw();
+
 void ram_init();
 
 #endif /* _RAM_H_ */

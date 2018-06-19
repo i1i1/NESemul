@@ -46,6 +46,12 @@ op_nop()
 }
 
 static void
+op_jmp()
+{
+	reg.PC = cpu_addr;
+}
+
+static void
 op_brk()
 {
 	todo();
@@ -54,7 +60,10 @@ op_brk()
 static void
 op_ora()
 {
-	todo();
+	reg.A |= cpu_arg;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
@@ -66,7 +75,7 @@ op_slo()
 static void
 op_asl()
 {
-	todo();
+	reg.P.C = reg.A >> 7;
 }
 
 static void
@@ -85,19 +94,20 @@ static void
 op_bpl()
 {
 	if (reg.P.N == 0)
-		reg.PC = cpu_addr;
+		op_jmp();
 }
 
 static void
 op_clc()
 {
-	todo();
+	reg.P.C = 0;
 }
 
 static void
 op_jsr()
 {
-	todo();
+	ram_pushw(reg.PC - 1);
+	op_jmp();
 }
 
 static void
@@ -183,12 +193,6 @@ op_alr()
 }
 
 static void
-op_jmp()
-{
-	reg.PC = cpu_addr;
-}
-
-static void
 op_bvc()
 {
 	todo();
@@ -203,7 +207,7 @@ op_cli()
 static void
 op_rts()
 {
-	todo();
+	reg.PC = ram_popw() + 1;
 }
 
 static void
@@ -263,7 +267,7 @@ op_sax()
 static void
 op_stx()
 {
-	todo();
+	ram_setb(cpu_addr, reg.X);
 }
 
 static void
@@ -275,13 +279,16 @@ op_sty()
 static void
 op_dey()
 {
-	todo();
+	reg.Y--;
+
+	flag_neg(reg.Y);
+	flag_zero(reg.Y);
 }
 
 static void
 op_txa()
 {
-	todo();
+	reg.A = reg.X;
 }
 
 static void
@@ -311,7 +318,7 @@ op_ahx()
 static void
 op_txs()
 {
-	todo();
+	reg.SP = reg.X;
 }
 
 static void
@@ -335,7 +342,10 @@ op_shx()
 static void
 op_ldy()
 {
-	todo();
+	reg.Y = cpu_arg;
+
+	flag_neg(reg.Y);
+	flag_zero(reg.Y);
 }
 
 static void
@@ -350,7 +360,10 @@ op_lda()
 static void
 op_ldx()
 {
-	todo();
+	reg.X = cpu_arg;
+
+	flag_neg(reg.X);
+	flag_zero(reg.X);
 }
 
 static void
@@ -368,7 +381,10 @@ op_tay()
 static void
 op_tax()
 {
-	todo();
+	reg.A = reg.X;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
@@ -398,13 +414,25 @@ op_las()
 static void
 op_cpy()
 {
-	todo();
+	int res;
+
+	res = reg.Y - (sbyte)cpu_arg;
+
+	flag_carry(res);
+	flag_neg(res);
+	flag_zero(res);
 }
 
 static void
 op_cmp()
 {
-	todo();
+	int res;
+
+	res = reg.A - (sbyte)cpu_arg;
+
+	flag_carry(res);
+	flag_neg(res);
+	flag_zero(res);
 }
 
 static void
@@ -416,13 +444,23 @@ op_dcp()
 static void
 op_dec()
 {
-	todo();
+	sbyte n;
+
+	n = cpu_arg - 1;
+
+	ram_setb(cpu_addr, n);
+
+	flag_neg(n);
+	flag_zero(n);
 }
 
 static void
 op_iny()
 {
-	todo();
+	reg.Y++;
+
+	flag_neg(reg.Y);
+	flag_zero(reg.Y);
 }
 
 static void
@@ -440,7 +478,8 @@ op_axs()
 static void
 op_bne()
 {
-	todo();
+	if (reg.P.Z == 0)
+		op_jmp();
 }
 
 static void
@@ -452,7 +491,13 @@ op_cld()
 static void
 op_cpx()
 {
-	todo();
+	int res;
+
+	res = reg.X - (sbyte)cpu_arg;
+
+	flag_carry(res);
+	flag_neg(res);
+	flag_zero(res);
 }
 
 static void
@@ -483,13 +528,17 @@ op_inc()
 static void
 op_inx()
 {
-	todo();
+	reg.X++;
+
+	flag_neg(reg.X);
+	flag_zero(reg.X);
 }
 
 static void
 op_beq()
 {
-	todo();
+	if (reg.P.Z)
+		op_jmp();
 }
 
 static void
@@ -520,7 +569,7 @@ struct opcode ops[256] =
 	OP(0x07,	op_slo,		addr_mode_zp,	5,	2)
 	OP(0x08,	op_php,		NULL,		3,	1)
 	OP(0x09,	op_ora,		addr_mode_imm,	2,	2)
-	OP(0x0A,	op_asl,		NULL,		2,	1)
+	OP(0x0A,	op_asl,		addr_mode_a,	2,	1)
 	OP(0x0B,	op_anc,		addr_mode_imm,	2,	2)
 	OP(0x0C,	op_nop,		NULL,		4,	1)
 	OP(0x0D,	op_ora,		addr_mode_abs,	4,	3)
@@ -550,7 +599,7 @@ struct opcode ops[256] =
 	OP(0x27,	op_rla,		addr_mode_zp,	5,	2)
 	OP(0x28,	op_plp,		NULL,		4,	1)
 	OP(0x29,	op_and,		addr_mode_imm,	2,	2)
-	OP(0x2A,	op_rol,		NULL,		2,	1)
+	OP(0x2A,	op_rol,		addr_mode_a,	2,	1)
 	OP(0x2C,	op_bit,		addr_mode_abs,	4,	3)
 	OP(0x2D,	op_and,		addr_mode_abs,	4,	3)
 	OP(0x2E,	op_rol,		addr_mode_abs,	6,	3)
@@ -575,7 +624,7 @@ struct opcode ops[256] =
 	OP(0x47,	op_sre,		addr_mode_zp,	5,	2)
 	OP(0x48,	op_pha,		NULL,		3,	1)
 	OP(0x49,	op_eor,		addr_mode_imm,	2,	2)
-	OP(0x4A,	op_lsr,		NULL,		2,	1)
+	OP(0x4A,	op_lsr,		addr_mode_a,	2,	1)
 	OP(0x4B,	op_alr,		addr_mode_imm,	2,	2)
 	OP(0x4C,	op_jmp,		addr_mode_abs,	3,	3)
 	OP(0x4D,	op_eor,		addr_mode_abs,	4,	3)
@@ -601,7 +650,7 @@ struct opcode ops[256] =
 	OP(0x67,	op_rra,		addr_mode_zp,	5,	2)
 	OP(0x68,	op_pla,		NULL,		4,	1)
 	OP(0x69,	op_adc,		addr_mode_imm,	2,	2)
-	OP(0x6A,	op_ror,		NULL,		2,	1)
+	OP(0x6A,	op_ror,		addr_mode_a,	2,	1)
 	OP(0x6B,	op_arr,		addr_mode_imm,	2,	2)
 	OP(0x6C,	op_jmp,		addr_mode_ind,	5,	2)
 	OP(0x6D,	op_adc,		addr_mode_abs,	4,	2)

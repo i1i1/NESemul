@@ -23,15 +23,15 @@ ram_general_getb(word addr)
 {
 	byte ret;
 
-	switch (addr / 0x4000) {
-	case 0:
-	case 1:
+	if (addr == 0x2002)
+		return 0xff;
+
+	if (addr < 0x8000)
 		ret = ram[addr];
-	case 2:
+	else if (addr < 0xC000)
 		ret = prg_rom.bank[prg_rom.low][addr % 0x4000];
-	case 3:
+	else
 		ret = prg_rom.bank[prg_rom.up][addr % 0x4000];
-	}
 
 	return ret;
 }
@@ -45,12 +45,41 @@ ram_setb(word addr, byte b)
 void
 ram_general_setb(word addr, byte b)
 {
-	switch (addr / 0x4000) {
-	case 0:
-	case 1:
+	if (addr < 0x8000)
 		ram[addr] = b;
-		/* PRG ROM Read Only! */
-	}
+}
+
+void
+ram_pushb(byte b)
+{
+	ram_setb(0x100 + reg.SP, b);
+	reg.SP--;
+}
+
+void
+ram_pushw(word w)
+{
+	ram_pushb(w >> 8);
+	ram_pushb(w % 0x100);
+}
+
+byte
+ram_popb()
+{
+	reg.SP++;
+
+	return ram_getb(0x100 + reg.SP);
+}
+
+word
+ram_popw()
+{
+	word ret;
+
+	ret = ram_popb();
+	ret |= ram_popb() << 8;
+
+	return ret;
 }
 
 void

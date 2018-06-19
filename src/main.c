@@ -153,7 +153,8 @@ main_loop()
 		else
 			printf("\t ( %04x ) %02x\n", cpu_addr, cpu_arg);
 
-		printf("regs: A %02x X %02x Y %02x\n\n", reg.A, reg.X, reg.Y);
+//		printf("regs: A %02x X %02x Y %02x SP %02x\n\n",
+//		       reg.A, reg.X, reg.Y, reg.SP);
 	}
 }
 

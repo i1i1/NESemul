@@ -23,7 +23,9 @@ mmc2_setb(word addr, byte b)
 {
 	if (addr < 0x8000)
 		ram_general_setb(addr, b);
-	else
-		prg_rom.low = b % prg_rom.n;
+	else if (ram_getb(addr) == b) {
+		printf("\nChanging upper bank to %d!\n", b % 16 - 1);
+		prg_rom.up = b % 8 - 1;
+	}
 }
 
