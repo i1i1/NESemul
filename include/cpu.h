@@ -7,7 +7,7 @@
 struct cpu {
 	word PC;
 	byte SP;
-	byte A;
+	sbyte A;
 	byte X;
 	byte Y;
 
@@ -24,6 +24,9 @@ struct cpu {
 };
 
 extern struct cpu reg;
+/* For opcodes */
+extern word cpu_addr;
+extern byte cpu_arg;
 
 void cpu_init();
 

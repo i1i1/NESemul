@@ -12,7 +12,16 @@
 
 #define NELEMS(a)	(sizeof(a) / sizeof(a[0]))
 
+#ifdef DEBUG
+	#include <stdio.h>
+	#define dprintf(...)	printf(__VA_ARGS__)
+#else
+	#define dprintf(...)
+	#define printf(...)
+#endif
 
+
+typedef int8_t sbyte;
 typedef uint8_t byte;
 typedef uint16_t word;
 

@@ -4,8 +4,8 @@
 #include "common.h"
 
 void mmc2_init();
-byte mmc2_inb();
-void mmc2_outb(byte b);
+byte mmc2_getb(word addr);
+void mmc2_setb(word addr, byte b);
 
 #endif /* _MMC2_H_ */
 

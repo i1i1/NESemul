@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "cpu.h"
+#include "ram.h"
 
 #include "common.h"
 #include "addr_modes.h"
@@ -9,14 +10,35 @@
 #include "opcodes.h"
 
 
-extern byte oper;
-
 #define todo() do {\
 		fprintf(stderr, "\nerror: %s function"	\
 			" unfinished at line %d\n\n",	\
 			__FUNCTION__, __LINE__);	\
 		exit(1);				\
 	} while(0)
+
+/* Some helpfull rutines for setting reg.P flags */
+static void
+flag_neg(sbyte n)
+{
+	if (n < 0)
+		reg.P.N = 1;
+}
+
+static void
+flag_zero(sbyte n)
+{
+	if (n == 0)
+		reg.P.Z = 1;
+}
+
+static void
+flag_carry(sbyte n)
+{
+	if (n)
+		reg.P.C = 1;
+}
+
 
 static void
 op_nop()
@@ -62,7 +84,8 @@ op_anc()
 static void
 op_bpl()
 {
-	todo();
+	if (reg.P.N == 0)
+		reg.PC = cpu_addr;
 }
 
 static void
@@ -140,7 +163,11 @@ op_sre()
 static void
 op_lsr()
 {
-	todo();
+	flag_carry(cpu_arg % 2);
+	flag_zero(cpu_arg >> 1);
+	flag_neg(cpu_arg >> 1);
+
+	ram_setb(cpu_addr, cpu_arg >> 1);
 }
 
 static void
@@ -158,7 +185,7 @@ op_alr()
 static void
 op_jmp()
 {
-	todo();
+	reg.PC = cpu_addr;
 }
 
 static void
@@ -224,7 +251,7 @@ op_sei()
 static void
 op_sta()
 {
-	todo();
+	ram_setb(cpu_addr, reg.A);
 }
 
 static void
@@ -314,7 +341,10 @@ op_ldy()
 static void
 op_lda()
 {
-	todo();
+	reg.A = cpu_arg;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
@@ -440,7 +470,14 @@ op_isc()
 static void
 op_inc()
 {
-	todo();
+	sbyte n;
+
+	n = cpu_arg + 1;
+
+	flag_neg(n);
+	flag_zero(n);
+
+	ram_setb(cpu_addr, n);
 }
 
 static void
