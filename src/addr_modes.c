@@ -65,6 +65,7 @@ void
 addr_mode_abs()
 {
 	cpu_addr = ram_getw(reg.PC);
+
 	reg.PC += 2;
 
 	cpu_arg = ram_getb(cpu_addr);

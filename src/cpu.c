@@ -30,6 +30,9 @@ cpu_init()
 	reg.P.C = reg.P.Z = reg.P.I = reg.P.D
 		= reg.P.B = reg.P.V = reg.P.N = 0;
 
-	map[mapper].init();
+	if (map[mapper].init)
+		map[mapper].init();
+	else
+		die("Unknown mapper");
 }
 

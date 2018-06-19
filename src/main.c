@@ -121,20 +121,39 @@ load_rom(FILE *fp)
 void
 main_loop()
 {
-	byte op;
+	byte op, i;
 
 	for (;;) {
 		printf("%04x:\t", reg.PC);
 
 		op = ram_getb(reg.PC);
-		reg.PC++;
 
-		printf("%02x\t%s\n", op, ops[op].name + 3);
+		for (i = 0; i < ops[op].len; i++)
+			printf(" %02x", ram_getb(reg.PC + i));
+
+		if (i < 3)
+			printf("\t");
+
+		reg.PC++;
 
 		if (ops[op].mode)
 			ops[op].mode();
 
-		ops[op].cmd();
+		printf("\t");
+
+		if (ops[op].cmd) {
+			ops[op].cmd();
+			printf("%s ", ops[op].cname);
+			if (ops[op].mode)
+				printf("%s", ops[op].mname);
+		} else
+			die("Unknown upcode");
+		if (cpu_addr < 0x100)
+			printf("\t (   %02x ) %02x\n", cpu_addr, cpu_arg);
+		else
+			printf("\t ( %04x ) %02x\n", cpu_addr, cpu_arg);
+
+		printf("regs: A %02x X %02x Y %02x\n\n", reg.A, reg.X, reg.Y);
 	}
 }
 

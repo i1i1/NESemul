@@ -3,9 +3,11 @@
 
 struct opcode {
 	void (*cmd)(void);
+	char *cname;
 	void (*mode)(void);
+	char *mname;
 	int cycles;
-	char *name;
+	int len;
 };
 
 extern struct opcode ops[256];
