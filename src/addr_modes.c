@@ -40,7 +40,7 @@ addr_mode_zp()
 void
 addr_mode_zpx()
 {
-	cpu_addr = ram_getb(reg.PC) + reg.X;
+	cpu_addr = (byte)(ram_getb(reg.PC) + reg.X);
 	reg.PC++;
 	cpu_arg = ram_getb(cpu_addr);
 }
@@ -48,7 +48,9 @@ addr_mode_zpx()
 void
 addr_mode_zpy()
 {
-	todo();
+	cpu_addr = (byte)(ram_getb(reg.PC) + reg.Y);
+	reg.PC++;
+	cpu_arg = ram_getb(cpu_addr);
 }
 
 void

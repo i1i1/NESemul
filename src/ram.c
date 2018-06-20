@@ -85,7 +85,6 @@ ram_popw()
 void
 ram_init()
 {
-	prg_rom.low = 0;
 	prg_rom.up = prg_rom.n - 1;
 }
 

@@ -35,7 +35,14 @@ flag_zero(sbyte n)
 static void
 flag_carry(sbyte n)
 {
-	if (n)
+	if (n != 0)
+		reg.P.C = 1;
+}
+
+static void
+flag_over(int n)
+{
+	if (-127 < n || n > 128)
 		reg.P.C = 1;
 }
 
@@ -113,7 +120,10 @@ op_jsr()
 static void
 op_and()
 {
-	todo();
+	reg.A &= cpu_arg;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
@@ -149,7 +159,7 @@ op_bmi()
 static void
 op_sec()
 {
-	todo();
+	reg.P.C = 1;
 }
 
 static void
@@ -161,7 +171,10 @@ op_rti()
 static void
 op_eor()
 {
-	todo();
+	reg.A ^= cpu_arg;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
@@ -213,7 +226,14 @@ op_rts()
 static void
 op_adc()
 {
-	todo();
+	int res;
+
+	res = cpu_arg + reg.A + reg.P.C;
+
+	flag_zero(res);
+	flag_carry(res);
+	flag_over(res);
+	flag_neg(res);
 }
 
 static void
@@ -289,6 +309,9 @@ static void
 op_txa()
 {
 	reg.A = reg.X;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
@@ -300,13 +323,17 @@ op_xaa()
 static void
 op_bcc()
 {
-	todo();
+	if (reg.P.C == 0)
+		op_jmp();
 }
 
 static void
 op_tya()
 {
-	todo();
+	reg.A = reg.Y;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
@@ -375,22 +402,26 @@ op_lax()
 static void
 op_tay()
 {
-	todo();
+	reg.Y = reg.A;
+
+	flag_neg(reg.Y);
+	flag_zero(reg.Y);
 }
 
 static void
 op_tax()
 {
-	reg.A = reg.X;
+	reg.X = reg.A;
 
-	flag_neg(reg.A);
-	flag_zero(reg.A);
+	flag_neg(reg.X);
+	flag_zero(reg.X);
 }
 
 static void
 op_bcs()
 {
-	todo();
+	if (reg.P.C)
+		op_jmp();
 }
 
 static void
@@ -764,6 +795,7 @@ struct opcode ops[256] =
 	OP(0xE7,	op_isc,		addr_mode_zp,	5,	2)
 	OP(0xE8,	op_inx,		NULL,		2,	1)
 	OP(0xE9,	op_sbc,		addr_mode_imm,	2,	2)
+	OP(0xEA,	op_nop,		NULL,		2,	1)
 	OP(0xEC,	op_cpx,		addr_mode_abs,	4,	3)
 	OP(0xED,	op_sbc,		addr_mode_abs,	4,	3)
 	OP(0xEE,	op_inc,		addr_mode_abs,	6,	3)
