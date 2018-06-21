@@ -10,40 +10,33 @@
 #include "opcodes.h"
 
 
-#define todo() do {\
-		fprintf(stderr, "\nerror: %s function"	\
-			" unfinished at line %d\n\n",	\
-			__FUNCTION__, __LINE__);	\
-		exit(1);				\
-	} while(0)
-
 /* Some helpfull rutines for setting reg.P flags */
 static void
 flag_neg(sbyte n)
 {
 	if (n < 0)
-		reg.P.N = 1;
+		reg.P.fl.N = 1;
 }
 
 static void
 flag_zero(sbyte n)
 {
 	if (n == 0)
-		reg.P.Z = 1;
+		reg.P.fl.Z = 1;
 }
 
 static void
 flag_carry(sbyte n)
 {
 	if (n != 0)
-		reg.P.C = 1;
+		reg.P.fl.C = 1;
 }
 
 static void
 flag_over(int n)
 {
 	if (-127 < n || n > 128)
-		reg.P.C = 1;
+		reg.P.fl.C = 1;
 }
 
 
@@ -82,7 +75,7 @@ op_slo()
 static void
 op_asl()
 {
-	reg.P.C = reg.A >> 7;
+	reg.P.fl.C = reg.A >> 7;
 }
 
 static void
@@ -100,14 +93,14 @@ op_anc()
 static void
 op_bpl()
 {
-	if (reg.P.N == 0)
+	if (reg.P.fl.N == 0)
 		op_jmp();
 }
 
 static void
 op_clc()
 {
-	reg.P.C = 0;
+	reg.P.fl.C = 0;
 }
 
 static void
@@ -159,7 +152,7 @@ op_bmi()
 static void
 op_sec()
 {
-	reg.P.C = 1;
+	reg.P.fl.C = 1;
 }
 
 static void
@@ -228,7 +221,7 @@ op_adc()
 {
 	int res;
 
-	res = cpu_arg + reg.A + reg.P.C;
+	res = cpu_arg + reg.A + reg.P.fl.C;
 
 	flag_zero(res);
 	flag_carry(res);
@@ -323,7 +316,7 @@ op_xaa()
 static void
 op_bcc()
 {
-	if (reg.P.C == 0)
+	if (reg.P.fl.C == 0)
 		op_jmp();
 }
 
@@ -420,7 +413,7 @@ op_tax()
 static void
 op_bcs()
 {
-	if (reg.P.C)
+	if (reg.P.fl.C)
 		op_jmp();
 }
 
@@ -509,7 +502,7 @@ op_axs()
 static void
 op_bne()
 {
-	if (reg.P.Z == 0)
+	if (reg.P.fl.Z == 0)
 		op_jmp();
 }
 
@@ -568,7 +561,7 @@ op_inx()
 static void
 op_beq()
 {
-	if (reg.P.Z)
+	if (reg.P.fl.Z)
 		op_jmp();
 }
 
@@ -709,10 +702,10 @@ struct opcode ops[256] =
 	OP(0x88,	op_dey,		NULL,		2,	1)
 	OP(0x8A,	op_txa,		NULL,		2,	1)
 	OP(0x8B,	op_xaa,		addr_mode_imm,	2,	2)
-	OP(0x8C,	op_sty,		addr_mode_abs,	4,	2)
-	OP(0x8D,	op_sta,		addr_mode_abs,	4,	2)
-	OP(0x8E,	op_stx,		addr_mode_abs,	4,	2)
-	OP(0x8F,	op_sax,		addr_mode_abs,	4,	2)
+	OP(0x8C,	op_sty,		addr_mode_abs,	4,	3)
+	OP(0x8D,	op_sta,		addr_mode_abs,	4,	3)
+	OP(0x8E,	op_stx,		addr_mode_abs,	4,	3)
+	OP(0x8F,	op_sax,		addr_mode_abs,	4,	3)
 	OP(0x90,	op_bcc,		addr_mode_rel,	3,	2)
 	OP(0x91,	op_sta,		addr_mode_izy,	6,	2)
 	OP(0x93,	op_ahx,		addr_mode_izy,	6,	2)

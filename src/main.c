@@ -4,31 +4,12 @@
 
 #include "common.h"
 
+#include "window.h"
 #include "cpu.h"
 #include "ppu.h"
 
 #include "ram.h"
-#include "opcodes.h"
 
-
-struct ines_header {
-	byte magick[4];
-
-	/* In 16 Kb */
-	byte prg_rom_num;
-	/* In 8 Kb */
-	byte chr_rom_num;
-
-	byte flag6;
-	byte flag7;
-
-	/* In 8 Kb */
-	byte prg_ram_num;
-
-	byte flag9;
-
-	byte res[6];
-};
 
 struct ines_header hdr;
 
@@ -113,55 +94,12 @@ load_rom(FILE *fp)
 }
 
 void
-printinfo()
-{
-	byte op, i;
-
-	printf("%04x:\t", reg.PC);
-
-	op = ram_getb(reg.PC);
-
-	for (i = 0; i < ops[op].len; i++)
-		printf(" %02x", ram_getb(reg.PC + i));
-
-	if (i < 3)
-		printf("\t");
-
-	printf("\t");
-
-	if (ops[op].cmd == NULL) {
-		printf("Unknown opcode %02x!\n", op);
-		die("");
-	}
-
-	printf("%s", ops[op].cname);
-	if (ops[op].mode)
-		printf(" %s", ops[op].mname);
-
-	printf("\t\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x;\tP=%02x)\n",
-	       (byte)reg.A, (byte)reg.X, (byte)reg.Y, (byte)reg.SP, reg.P);
-}
-
-void
 main_loop()
 {
-	byte op;
-
 	for (;;) {
-		printinfo();
-
-		op = ram_getb(reg.PC);
-		reg.PC++;
-
-		if (ops[op].mode)
-			ops[op].mode();
-
-		if (ops[op].cmd == NULL) {
-			printf("Unknown opcode %02x!\n", op);
-			die("");
-		}
-
-		ops[op].cmd();
+		cpu_run_cycles(1000);
+		if (window_event_exit())
+			window_deinit();
 	}
 }
 
@@ -180,6 +118,8 @@ main(int argc, char **argv)
 	ram_init();
 	cpu_init();
 	ppu_init();
+
+	window_init();
 
 	main_loop();
 

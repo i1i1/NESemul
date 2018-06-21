@@ -5,16 +5,10 @@
 #include "cpu.h"
 #include "ram.h"
 
+
 byte cpu_arg;
 word cpu_addr;
 
-
-#define todo() do {\
-		fprintf(stderr, "\nerror: %s function"	\
-			" unfinished at line %d\n\n",	\
-			__FUNCTION__, __LINE__);	\
-		exit(1);				\
-	} while(0)
 
 void
 addr_mode_imm()

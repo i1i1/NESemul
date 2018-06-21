@@ -1,6 +1,7 @@
 #ifndef _DEFS_H_
 #define _DEFS_H_
 
+#include <stdlib.h>
 #include <stdint.h>
 
 #ifndef NULL
@@ -10,7 +11,7 @@
 #define FALSE	(0)
 #define TRUE	(!FALSE)
 
-#define NELEMS(a)	(sizeof(a) / sizeof(a[0]))
+#define NELEMS(a)	(sizeof(a) / sizeof((a)[0]))
 
 #ifdef DEBUG
 	#include <stdio.h>
@@ -20,15 +21,18 @@
 	#define printf(...)
 #endif
 
+#define todo()	do {								\
+			fprintf(stderr, "\nerror: %s function"			\
+				" unfinished in file %s at line %d\n\n",	\
+				__FILE__, __FUNCTION__, __LINE__);		\
+			exit(1);						\
+		} while(0)
+
 
 typedef int8_t sbyte;
 typedef uint8_t byte;
 typedef uint16_t word;
 
-byte inb();
-void outb(byte v);
-word inw();
-void outw(word v);
 void die(const char *msg);
 
 

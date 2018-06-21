@@ -1,7 +1,10 @@
 #include "common.h"
 #include "cpu.h"
 #include "mapper_defs.h"
+
+#include "ppu.h"
 #include "ram.h"
+
 
 struct prg_rom prg_rom = { NULL, 0, 0, 0 };
 byte ram[0x10000] = { 0 };
@@ -21,19 +24,16 @@ ram_getw(word addr)
 byte
 ram_general_getb(word addr)
 {
-	byte ret;
-
-	if (addr == 0x2002)
-		return 0xff;
-
-	if (addr < 0x8000)
-		ret = ram[addr];
+	if	(ppu_is_reg(addr))
+		return ppu_reg_get(addr);
+	else if (addr < 0x2000)
+		return ram[addr % 0x800];
+	else if (addr < 0x8000)
+		return ram[addr];
 	else if (addr < 0xC000)
-		ret = prg_rom.bank[prg_rom.low][addr % 0x4000];
+		return prg_rom.bank[prg_rom.low][addr % 0x4000];
 	else
-		ret = prg_rom.bank[prg_rom.up][addr % 0x4000];
-
-	return ret;
+		return prg_rom.bank[prg_rom.up][addr % 0x4000];
 }
 
 void

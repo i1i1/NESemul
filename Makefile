@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wextra -Wall -std=c99 -Iinclude
+CFLAGS = -lSDL2 -Wextra -Wall -std=c99 -Iinclude
 OUT = emul
 ROM = Metal_Gear.nes
 
