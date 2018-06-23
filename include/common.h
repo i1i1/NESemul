@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "settings.h"
+
 #ifndef NULL
 #define NULL	(void *)0
 #endif

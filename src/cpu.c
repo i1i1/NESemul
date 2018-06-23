@@ -55,8 +55,9 @@ void
 cpu_run_cycles(int n)
 {
 	byte op;
+	int i;
 
-	while (n--) {
+	for (i = 0; i < n; i++) {
 		printinfo();
 
 		op = ram_getb(reg.PC);

@@ -1,4 +1,5 @@
-#include <stdio.h>
+#include <SDL2/SDL.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -7,7 +8,6 @@
 #include "window.h"
 #include "cpu.h"
 #include "ppu.h"
-
 #include "ram.h"
 
 
@@ -96,10 +96,22 @@ load_rom(FILE *fp)
 void
 main_loop()
 {
+	/* All time in ms */
+	uint32_t curtm, dsttm;
+	int cycles;
+
+	cycles = 1000;
+	dsttm = cycles * 1000 / CPU_FREQ;
+
 	for (;;) {
-		cpu_run_cycles(1000);
+		curtm = SDL_GetTicks();
+		cpu_run_cycles(cycles);
+
 		if (window_event_exit())
 			window_deinit();
+
+		curtm = SDL_GetTicks() - curtm;
+		SDL_Delay(curtm - dsttm);
 	}
 }
 
