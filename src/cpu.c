@@ -7,6 +7,8 @@
 
 struct cpu reg;
 
+int cpu_cycles;
+
 #define MAP(hex, init_, getb_, setb_)		\
 	[(hex)] = {				\
 		.init = (init_),		\
@@ -20,7 +22,7 @@ struct mapper map[256] = {
 
 #undef MAP
 
-
+/* Some ugly prints, what produce nice output */
 void
 printinfo()
 {
@@ -38,35 +40,35 @@ printinfo()
 
 	printf("\t");
 
-	if (ops[op].cmd == NULL) {
-		printf("Unknown opcode %02x!\n", op);
-		die("");
-	}
-
 	printf("%s", ops[op].cname);
 	if (ops[op].mode)
 		printf(" %s", ops[op].mname);
 
-	printf("\t\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x;\tP=%02x)\n",
-	       (byte)reg.A, reg.X, reg.Y, reg.SP, reg.P.n);
+	printf("\t\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x;\tP=%02x) (cycle %d)\n",
+	       (byte)reg.A, reg.X, reg.Y, reg.SP, reg.P.n, cpu_cycles);
 }
 
 void
 cpu_run_cycles(int n)
 {
 	byte op;
-	int i;
 
-	for (i = 0; i < n; i++) {
+	while (n > 0) {
 		printinfo();
 
 		op = ram_getb(reg.PC);
 		reg.PC++;
 
+		if (ops[op].cmd == NULL)
+			die("Unknown opcode");
+
 		if (ops[op].mode)
 			ops[op].mode();
 
 		ops[op].cmd();
+
+		cpu_cycles += ops[op].cycles;
+		n -= ops[op].cycles;
 	}
 }
 

@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "cpu.h"
+#include "ppu.h"
 #include "ram.h"
 
 
@@ -13,7 +14,8 @@ word cpu_addr;
 void
 addr_mode_imm()
 {
-	cpu_arg = ram_getb(reg.PC);
+	if (ppu_is_reg_r(reg.PC))
+		cpu_arg = ram_getb(reg.PC);
 	reg.PC++;
 }
 
@@ -26,9 +28,10 @@ addr_mode_ind()
 void
 addr_mode_zp()
 {
-	cpu_addr = ram_getb(reg.PC);
+	cpu_addr = ram_getb(reg.PC) % 0x100;
 	reg.PC++;
-	cpu_arg = ram_getb(cpu_addr);
+	if (ppu_is_reg_r(cpu_addr))
+		cpu_arg = ram_getb(cpu_addr);
 }
 
 void
@@ -36,7 +39,8 @@ addr_mode_zpx()
 {
 	cpu_addr = (byte)(ram_getb(reg.PC) + reg.X);
 	reg.PC++;
-	cpu_arg = ram_getb(cpu_addr);
+	if (ppu_is_reg_r(cpu_addr))
+		cpu_arg = ram_getb(cpu_addr);
 }
 
 void
@@ -44,7 +48,8 @@ addr_mode_zpy()
 {
 	cpu_addr = (byte)(ram_getb(reg.PC) + reg.Y);
 	reg.PC++;
-	cpu_arg = ram_getb(cpu_addr);
+	if (ppu_is_reg_r(cpu_addr))
+		cpu_arg = ram_getb(cpu_addr);
 }
 
 void
@@ -70,7 +75,8 @@ addr_mode_abs()
 
 	reg.PC += 2;
 
-	cpu_arg = ram_getb(cpu_addr);
+	if (ppu_is_reg_r(cpu_addr))
+		cpu_arg = ram_getb(cpu_addr);
 }
 
 void

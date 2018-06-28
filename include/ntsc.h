@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+#define NTSC
+
 /* Frame per second */
 #define WINDOW_FRAME_PS		60
 

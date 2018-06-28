@@ -45,7 +45,11 @@ ram_setb(word addr, byte b)
 void
 ram_general_setb(word addr, byte b)
 {
-	if (addr < 0x8000)
+	if	(ppu_is_reg(addr))
+		ppu_reg_set(addr, b);
+	else if (addr < 0x2000)
+		ram[addr % 0x800] = b;
+	else if (addr < 0x8000)
 		ram[addr] = b;
 }
 

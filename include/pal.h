@@ -1,6 +1,8 @@
 #ifndef _PAL_H_
 #define _PAL_H_
 
+#define PAL
+
 /* Frame per second */
 #define WINDOW_FRAME_PS		50
 

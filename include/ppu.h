@@ -16,6 +16,8 @@ enum ppu_reg {
 };
 
 struct ppu {
+	byte ready;
+
 	byte ram[0x4000];
 	byte spr_ram[0x100];
 
@@ -24,13 +26,16 @@ struct ppu {
 	byte PPUSTATUS;
 	byte OAMADDR;
 	byte OAMDATA;
-	word PPUSCROLL;
+	byte PPUSCROLL_X;
+	byte PPUSCROLL_Y;
 	word PPUADDR;
 	byte PPUDATA;
-	byte OAMDMA;
+
+	byte scroll;
 };
 
 extern struct ppu ppu;
+extern const byte ppu_palette[3 * 0x40];
 
 void ppu_init();
 
@@ -38,5 +43,6 @@ byte ppu_reg_get(word addr);
 void ppu_reg_set(word addr, byte b);
 
 byte ppu_is_reg(word addr);
+byte ppu_is_reg_r(word addr);
 
 #endif /* _PPU_H_ */

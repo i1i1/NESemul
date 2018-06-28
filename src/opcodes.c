@@ -67,12 +67,6 @@ op_ora()
 }
 
 static void
-op_slo()
-{
-	todo();
-}
-
-static void
 op_asl()
 {
 	reg.P.fl.C = reg.A >> 7;
@@ -81,13 +75,7 @@ op_asl()
 static void
 op_php()
 {
-	todo();
-}
-
-static void
-op_anc()
-{
-	todo();
+	ram_pushb(reg.P.n);
 }
 
 static void
@@ -120,33 +108,39 @@ op_and()
 }
 
 static void
-op_rla()
-{
-	todo();
-}
-
-static void
 op_bit()
 {
-	todo();
+	reg.P.fl.N = cpu_arg >> 7;
+	reg.P.fl.V = cpu_arg >> 6;
+
+	flag_zero(reg.A & cpu_arg);
 }
 
 static void
 op_rol()
 {
-	todo();
+	int c;
+
+	c = reg.A >> 7;
+	reg.A <<= 1;
+	reg.A |= reg.P.fl.C;
+	reg.P.fl.C = c;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
 op_plp()
 {
-	todo();
+	reg.P.n = ram_popb();
 }
 
 static void
 op_bmi()
 {
-	todo();
+	if (reg.P.fl.N)
+		op_jmp();
 }
 
 static void
@@ -171,12 +165,6 @@ op_eor()
 }
 
 static void
-op_sre()
-{
-	todo();
-}
-
-static void
 op_lsr()
 {
 	flag_carry(cpu_arg % 2);
@@ -189,25 +177,20 @@ op_lsr()
 static void
 op_pha()
 {
-	todo();
-}
-
-static void
-op_alr()
-{
-	todo();
+	ram_pushb(reg.A);
 }
 
 static void
 op_bvc()
 {
-	todo();
+	if (reg.P.fl.V == 0)
+		op_jmp();
 }
 
 static void
 op_cli()
 {
-	todo();
+	reg.P.fl.I = 0;
 }
 
 static void
@@ -230,51 +213,42 @@ op_adc()
 }
 
 static void
-op_rra()
-{
-	todo();
-}
-
-static void
 op_ror()
 {
-	todo();
+	int c;
+
+	c = reg.A % 2;
+	reg.A >>= 1;
+	reg.A |= reg.P.fl.C << 7;
+	reg.P.fl.C = c;
+
+	flag_neg(reg.A);
+	flag_zero(reg.A);
 }
 
 static void
 op_pla()
 {
-	todo();
-}
-
-static void
-op_arr()
-{
-	todo();
+	reg.A = ram_popb();
 }
 
 static void
 op_bvs()
 {
-	todo();
+	if (reg.P.fl.V)
+		op_jmp();
 }
 
 static void
 op_sei()
 {
-	todo();
+	reg.P.fl.I = 1;
 }
 
 static void
 op_sta()
 {
 	ram_setb(cpu_addr, reg.A);
-}
-
-static void
-op_sax()
-{
-	todo();
 }
 
 static void
@@ -286,7 +260,7 @@ op_stx()
 static void
 op_sty()
 {
-	todo();
+	ram_setb(cpu_addr, reg.Y);
 }
 
 static void
@@ -308,12 +282,6 @@ op_txa()
 }
 
 static void
-op_xaa()
-{
-	todo();
-}
-
-static void
 op_bcc()
 {
 	if (reg.P.fl.C == 0)
@@ -330,33 +298,9 @@ op_tya()
 }
 
 static void
-op_ahx()
-{
-	todo();
-}
-
-static void
 op_txs()
 {
 	reg.SP = reg.X;
-}
-
-static void
-op_tas()
-{
-	todo();
-}
-
-static void
-op_shy()
-{
-	todo();
-}
-
-static void
-op_shx()
-{
-	todo();
 }
 
 static void
@@ -387,12 +331,6 @@ op_ldx()
 }
 
 static void
-op_lax()
-{
-	todo();
-}
-
-static void
 op_tay()
 {
 	reg.Y = reg.A;
@@ -420,19 +358,13 @@ op_bcs()
 static void
 op_clv()
 {
-	todo();
+	reg.P.fl.V = 0;
 }
 
 static void
 op_tsx()
 {
-	todo();
-}
-
-static void
-op_las()
-{
-	todo();
+	reg.X = reg.SP;
 }
 
 static void
@@ -460,12 +392,6 @@ op_cmp()
 }
 
 static void
-op_dcp()
-{
-	todo();
-}
-
-static void
 op_dec()
 {
 	sbyte n;
@@ -490,13 +416,10 @@ op_iny()
 static void
 op_dex()
 {
-	todo();
-}
+	reg.X--;
 
-static void
-op_axs()
-{
-	todo();
+	flag_neg(reg.X);
+	flag_zero(reg.X);
 }
 
 static void
@@ -509,7 +432,7 @@ op_bne()
 static void
 op_cld()
 {
-	todo();
+	reg.P.fl.D = 0;
 }
 
 static void
@@ -527,13 +450,14 @@ op_cpx()
 static void
 op_sbc()
 {
-	todo();
-}
+	int res;
 
-static void
-op_isc()
-{
-	todo();
+	res = reg.A - cpu_arg - (1 - reg.P.fl.C);
+
+	flag_zero(res);
+	flag_carry(res);
+	flag_over(res);
+	flag_neg(res);
 }
 
 static void
@@ -567,6 +491,116 @@ op_beq()
 
 static void
 op_sed()
+{
+	reg.P.fl.D = 1;
+}
+
+/* Unofficial opcodes go from here */
+
+static void
+op_slo()
+{
+	todo();
+}
+
+static void
+op_anc()
+{
+	todo();
+}
+
+static void
+op_rla()
+{
+	todo();
+}
+
+static void
+op_sre()
+{
+	todo();
+}
+
+static void
+op_alr()
+{
+	todo();
+}
+
+static void
+op_rra()
+{
+	todo();
+}
+
+static void
+op_arr()
+{
+	todo();
+}
+
+static void
+op_sax()
+{
+	todo();
+}
+
+static void
+op_xaa()
+{
+	todo();
+}
+
+static void
+op_ahx()
+{
+	todo();
+}
+
+static void
+op_tas()
+{
+	todo();
+}
+
+static void
+op_shy()
+{
+	todo();
+}
+
+static void
+op_shx()
+{
+	todo();
+}
+
+static void
+op_lax()
+{
+	todo();
+}
+
+static void
+op_las()
+{
+	todo();
+}
+
+static void
+op_dcp()
+{
+	todo();
+}
+
+static void
+op_axs()
+{
+	todo();
+}
+
+static void
+op_isc()
 {
 	todo();
 }

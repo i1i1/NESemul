@@ -35,6 +35,7 @@ struct cpu {
 			byte C	: 1;
 			byte Z	: 1;
 			byte I	: 1;
+			/* Flag D is ignored */
 			byte D	: 1;
 			byte B	: 1;
 			byte RES: 1;
@@ -49,6 +50,8 @@ extern struct cpu reg;
 extern struct ines_header hdr;
 
 extern byte mapper;
+
+extern int cpu_cycles;
 
 /* For opcodes */
 extern word cpu_addr;
