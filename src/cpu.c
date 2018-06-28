@@ -44,8 +44,11 @@ printinfo()
 	if (ops[op].mode)
 		printf(" %s", ops[op].mname);
 
-	printf("\t\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x;\tP=%02x) (cycle %d)\n",
-	       (byte)reg.A, reg.X, reg.Y, reg.SP, reg.P.n, cpu_cycles);
+	printf("\t\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x) "
+	       "(P=%02x; .C=%d .Z=%d .O=%d .N=%d) (cycle %d)\n",
+	       (byte)reg.A, reg.X, reg.Y, reg.SP,
+	       reg.P.n, reg.P.fl.C, reg.P.fl.Z,
+	       reg.P.fl.V, reg.P.fl.N, cpu_cycles);
 }
 
 void
@@ -85,5 +88,18 @@ cpu_init()
 		map[mapper].init();
 	else
 		die("Unknown mapper");
+}
+
+void
+cpu_irq()
+{
+	printf("\nIRQ Occured!\n\n");
+
+	ram_pushw(reg.PC);
+	ram_pushb(reg.P.n);
+
+	reg.P.fl.I = 1;
+
+	reg.PC = ram_getw(0xFFFE);
 }
 

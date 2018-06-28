@@ -16,6 +16,8 @@ flag_neg(sbyte n)
 {
 	if (n < 0)
 		reg.P.fl.N = 1;
+	else
+		reg.P.fl.N = 0;
 }
 
 static void
@@ -23,6 +25,8 @@ flag_zero(sbyte n)
 {
 	if (n == 0)
 		reg.P.fl.Z = 1;
+	else
+		reg.P.fl.Z = 0;
 }
 
 static void
@@ -30,13 +34,17 @@ flag_carry(sbyte n)
 {
 	if (n != 0)
 		reg.P.fl.C = 1;
+	else
+		reg.P.fl.C = 0;
 }
 
 static void
 flag_over(int n)
 {
 	if (-127 < n || n > 128)
-		reg.P.fl.C = 1;
+		reg.P.fl.V = 1;
+	else
+		reg.P.fl.V = 0;
 }
 
 
@@ -48,13 +56,17 @@ op_nop()
 static void
 op_jmp()
 {
+	printf("\n");
 	reg.PC = cpu_addr;
 }
 
 static void
 op_brk()
 {
-	todo();
+	reg.PC++;
+	reg.P.fl.B = 1;
+
+	cpu_irq();
 }
 
 static void
@@ -69,7 +81,21 @@ op_ora()
 static void
 op_asl()
 {
-	reg.P.fl.C = reg.A >> 7;
+	flag_carry(cpu_arg >> 7);
+	flag_zero(cpu_arg << 1);
+	flag_neg(cpu_arg << 1);
+
+	ram_setb(cpu_addr, cpu_arg << 1);
+}
+
+static void
+op_asl_a()
+{
+	flag_carry(reg.A >> 7);
+	flag_zero(reg.A << 1);
+	flag_neg(reg.A << 1);
+
+	reg.A <<= 1;
 }
 
 static void
@@ -121,6 +147,22 @@ op_rol()
 {
 	int c;
 
+	c = cpu_arg >> 7;
+	cpu_arg <<= 1;
+	cpu_arg |= reg.P.fl.C;
+	reg.P.fl.C = c;
+
+	flag_neg(cpu_arg);
+	flag_zero(cpu_arg);
+
+	ram_setb(cpu_addr, cpu_arg);
+}
+
+static void
+op_rol_a()
+{
+	int c;
+
 	c = reg.A >> 7;
 	reg.A <<= 1;
 	reg.A |= reg.P.fl.C;
@@ -134,6 +176,7 @@ static void
 op_plp()
 {
 	reg.P.n = ram_popb();
+	reg.P.fl.B = 0;
 }
 
 static void
@@ -175,6 +218,16 @@ op_lsr()
 }
 
 static void
+op_lsr_a()
+{
+	reg.P.fl.C = reg.A % 2;
+	reg.A >>= 1;
+
+	flag_zero(reg.A);
+	flag_neg(reg.A);
+}
+
+static void
 op_pha()
 {
 	ram_pushb(reg.A);
@@ -197,6 +250,7 @@ static void
 op_rts()
 {
 	reg.PC = ram_popw() + 1;
+	printf("\n");
 }
 
 static void
@@ -214,6 +268,22 @@ op_adc()
 
 static void
 op_ror()
+{
+	int c;
+
+	c = cpu_arg % 2;
+	cpu_arg >>= 1;
+	cpu_arg |= reg.P.fl.C << 7;
+	reg.P.fl.C = c;
+
+	flag_neg(cpu_arg);
+	flag_zero(cpu_arg);
+
+	ram_setb(cpu_addr, cpu_arg);
+}
+
+static void
+op_ror_a()
 {
 	int c;
 
@@ -370,25 +440,37 @@ op_tsx()
 static void
 op_cpy()
 {
-	int res;
-
-	res = reg.Y - (sbyte)cpu_arg;
-
-	flag_carry(res);
-	flag_neg(res);
-	flag_zero(res);
+	if (reg.Y == cpu_arg) {
+		reg.P.fl.N = 0;
+		reg.P.fl.Z = 1;
+		reg.P.fl.C = 1;
+	} else if (reg.Y < cpu_arg) {
+		reg.P.fl.N = 1;
+		reg.P.fl.Z = 0;
+		reg.P.fl.C = 0;
+	} else {
+		reg.P.fl.N = 0;
+		reg.P.fl.Z = 0;
+		reg.P.fl.C = 1;
+	}
 }
 
 static void
 op_cmp()
 {
-	int res;
-
-	res = reg.A - (sbyte)cpu_arg;
-
-	flag_carry(res);
-	flag_neg(res);
-	flag_zero(res);
+	if (reg.A == (sbyte)cpu_arg) {
+		reg.P.fl.N = 0;
+		reg.P.fl.Z = 1;
+		reg.P.fl.C = 1;
+	} else if (reg.A < (sbyte)cpu_arg) {
+		reg.P.fl.N = 1;
+		reg.P.fl.Z = 0;
+		reg.P.fl.C = 0;
+	} else {
+		reg.P.fl.N = 0;
+		reg.P.fl.Z = 0;
+		reg.P.fl.C = 1;
+	}
 }
 
 static void
@@ -438,13 +520,19 @@ op_cld()
 static void
 op_cpx()
 {
-	int res;
-
-	res = reg.X - (sbyte)cpu_arg;
-
-	flag_carry(res);
-	flag_neg(res);
-	flag_zero(res);
+	if (reg.X < cpu_arg) {
+		reg.P.fl.N = 1;
+		reg.P.fl.Z = 0;
+		reg.P.fl.C = 0;
+	} else if (reg.X == cpu_arg) {
+		reg.P.fl.N = 0;
+		reg.P.fl.Z = 1;
+		reg.P.fl.C = 1;
+	} else {
+		reg.P.fl.N = 0;
+		reg.P.fl.Z = 0;
+		reg.P.fl.C = 1;
+	}
 }
 
 static void
@@ -458,6 +546,8 @@ op_sbc()
 	flag_carry(res);
 	flag_over(res);
 	flag_neg(res);
+
+	reg.A = res;
 }
 
 static void
@@ -627,7 +717,7 @@ struct opcode ops[256] =
 	OP(0x07,	op_slo,		addr_mode_zp,	5,	2)
 	OP(0x08,	op_php,		NULL,		3,	1)
 	OP(0x09,	op_ora,		addr_mode_imm,	2,	2)
-	OP(0x0A,	op_asl,		addr_mode_a,	2,	1)
+	OP(0x0A,	op_asl_a,	NULL,		2,	1)
 	OP(0x0B,	op_anc,		addr_mode_imm,	2,	2)
 	OP(0x0C,	op_nop,		NULL,		4,	1)
 	OP(0x0D,	op_ora,		addr_mode_abs,	4,	3)
@@ -657,7 +747,7 @@ struct opcode ops[256] =
 	OP(0x27,	op_rla,		addr_mode_zp,	5,	2)
 	OP(0x28,	op_plp,		NULL,		4,	1)
 	OP(0x29,	op_and,		addr_mode_imm,	2,	2)
-	OP(0x2A,	op_rol,		addr_mode_a,	2,	1)
+	OP(0x2A,	op_rol_a,	NULL,		2,	1)
 	OP(0x2C,	op_bit,		addr_mode_abs,	4,	3)
 	OP(0x2D,	op_and,		addr_mode_abs,	4,	3)
 	OP(0x2E,	op_rol,		addr_mode_abs,	6,	3)
@@ -682,7 +772,7 @@ struct opcode ops[256] =
 	OP(0x47,	op_sre,		addr_mode_zp,	5,	2)
 	OP(0x48,	op_pha,		NULL,		3,	1)
 	OP(0x49,	op_eor,		addr_mode_imm,	2,	2)
-	OP(0x4A,	op_lsr,		addr_mode_a,	2,	1)
+	OP(0x4A,	op_lsr_a,	NULL,		2,	1)
 	OP(0x4B,	op_alr,		addr_mode_imm,	2,	2)
 	OP(0x4C,	op_jmp,		addr_mode_abs,	3,	3)
 	OP(0x4D,	op_eor,		addr_mode_abs,	4,	3)
@@ -708,9 +798,9 @@ struct opcode ops[256] =
 	OP(0x67,	op_rra,		addr_mode_zp,	5,	2)
 	OP(0x68,	op_pla,		NULL,		4,	1)
 	OP(0x69,	op_adc,		addr_mode_imm,	2,	2)
-	OP(0x6A,	op_ror,		addr_mode_a,	2,	1)
+	OP(0x6A,	op_ror_a,	NULL,		2,	1)
 	OP(0x6B,	op_arr,		addr_mode_imm,	2,	2)
-	OP(0x6C,	op_jmp,		addr_mode_ind,	5,	2)
+	OP(0x6C,	op_jmp,		addr_mode_ind,	5,	3)
 	OP(0x6D,	op_adc,		addr_mode_abs,	4,	2)
 	OP(0x6E,	op_ror,		addr_mode_abs,	6,	2)
 	OP(0x6F,	op_rra,		addr_mode_abs,	6,	2)

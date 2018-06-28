@@ -60,5 +60,7 @@ extern byte cpu_arg;
 void cpu_init();
 void cpu_run_cycles(int n);
 
+void cpu_irq();
+
 
 #endif /* _CPU_H_ */

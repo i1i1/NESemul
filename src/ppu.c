@@ -91,7 +91,8 @@ ppu_reg_get(word addr)
 	switch (addr) {
 	case PPUSTATUS:
 		//todo();
-		return ppu.PPUSTATUS;
+		return 0xFF;
+		//return ppu.PPUSTATUS;
 	case PPUDATA:
 		//todo();
 		return ppu.PPUDATA;
@@ -117,7 +118,7 @@ ppu_reg_set(word addr, byte b)
 	if (0x2000 <= addr && addr < 0x4000)
 		addr = 0x2000 + addr % 8;
 
-	printf("Setting reg %04x to %02x\n", addr, b);
+//	printf("Setting reg %04x to %02x\n", addr, b);
 
 	switch (addr) {
 	case OAMDMA:
@@ -135,6 +136,24 @@ ppu_reg_set(word addr, byte b)
 	case PPUCTRL:
 		if (ppu.ready)
 			ppu.PPUCTRL = b;
+		break;
+	case PPUMASK:
+		if (ppu.ready)
+			ppu.PPUMASK = b;
+		break;
+	case PPUADDR:
+		if (!ppu.ready)
+			break;
+
+		ppu.PPUADDR <<= ppu.addr * 8;
+		ppu.PPUADDR |= b;
+
+		ppu.addr++;
+		ppu.addr %= 2;
+		break;
+	case 0x4015:
+	case 0x4017:
+		/* Some APU registers, ignored for now */
 		break;
 	default:
 		todo();

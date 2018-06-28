@@ -32,6 +32,7 @@ struct ppu {
 	byte PPUDATA;
 
 	byte scroll;
+	byte addr;
 };
 
 extern struct ppu ppu;
