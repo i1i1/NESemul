@@ -25,14 +25,15 @@ struct ppu {
 	byte PPUMASK;
 	byte PPUSTATUS;
 	byte OAMADDR;
-	byte OAMDATA;
 	byte PPUSCROLL_X;
 	byte PPUSCROLL_Y;
 	word PPUADDR;
-	byte PPUDATA;
 
 	byte scroll;
 	byte addr;
+	byte vmap;
+
+	int scanline;
 };
 
 extern struct ppu ppu;
@@ -43,7 +44,11 @@ void ppu_init();
 byte ppu_reg_get(word addr);
 void ppu_reg_set(word addr, byte b);
 
-byte ppu_is_reg(word addr);
 byte ppu_is_reg_r(word addr);
+
+byte ppu_getb(word a);
+void ppu_setb(word a, byte b);
+
+void ppu_run_cycles(int n);
 
 #endif /* _PPU_H_ */

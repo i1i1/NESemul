@@ -1,5 +1,6 @@
 #include "common.h"
 #include "ram.h"
+#include "cpu.h"
 #include "ppu.h"
 
 struct ppu ppu;
@@ -79,6 +80,8 @@ const byte ppu_palette[3 * 0x40] = {
 byte
 ppu_reg_get(word addr)
 {
+	byte ret;
+
 	/* If some WO register */
 	if (addr >= 0x4000)
 		return 0;
@@ -90,14 +93,25 @@ ppu_reg_get(word addr)
 
 	switch (addr) {
 	case PPUSTATUS:
-		//todo();
-		return 0xFF;
-		//return ppu.PPUSTATUS;
+		ppu.scroll = ppu.addr = 0;
+		ret = ppu.PPUSTATUS;
+
+		/* In vblank = False */
+		ppu.PPUSTATUS &= ~(1 << 7);
+		/* In Sprite-0 hit = False */
+		ppu.PPUSTATUS &= ~(1 << 6);
+
+		return ret;
 	case PPUDATA:
-		//todo();
-		return ppu.PPUDATA;
+		ret = ppu_getb(ppu.PPUADDR);
+		ppu.PPUADDR += (ppu.PPUCTRL & (1 << 2)) ? 32 : 1;
+
+		return ret;
+	case OAMDATA:
+		return ppu.spr_ram[ppu.OAMADDR++];
 	/* If some WO register or invalide register */
 	default:
+		todo();
 		return 0;
 	}
 }
@@ -112,13 +126,76 @@ ppu_load_spr_ram(word addr)
 }
 
 void
+ppu_setb(word a, byte b)
+{
+	a %= 0x4000;
+
+	/* Mirroring */
+	if (0x3f20 <= a)
+		a = 0x3f20 + a % 0x20;
+
+	/* Mirroring */
+	if (0x3000 <= a && a < 0x3f00)
+		a = 0x2000 + a % 0x1000;
+
+	/* If not a nametable */
+	if (!(0x2000 <= a && a < 0x3000))
+		goto setting;
+
+	/* Some nametable mirroring */
+	if (ppu.vmap)
+		a = 0x2000 + a % 0x800;
+	else
+		if (0x2000 <= a && a < 0x2800)
+			a = 0x2000 + a % 0x400;
+		else
+			a = 0x2800 + a % 0x400;
+
+setting:
+	ppu.ram[a] = b;
+}
+
+byte
+ppu_getb(word a)
+{
+	a %= 0x4000;
+
+	/* Mirroring */
+	if (0x3f20 <= a)
+		a = 0x3f20 + a % 0x20;
+
+	/* Mirroring */
+	if (0x3000 <= a && a < 0x3f00)
+		a = 0x2000 + a % 0x1000;
+
+	/* If not a nametable */
+	if (!(0x2000 <= a && a < 0x3000))
+		return ppu.ram[a];
+
+	/* Some nametable mirroring */
+	if (ppu.vmap)
+		a = 0x2000 + a % 0x800;
+	else
+		if (0x2000 <= a && a < 0x2800)
+			a = 0x2000 + a % 0x400;
+		else
+			a = 0x2800 + a % 0x400;
+
+	return ppu.ram[a];
+}
+
+void
 ppu_reg_set(word addr, byte b)
 {
+	/* Some APU registers. Ignored for now */
+	if (addr >= 0x4000 && (addr != OAMDMA))
+		return;
+
 	/* Some mirroring */
 	if (0x2000 <= addr && addr < 0x4000)
 		addr = 0x2000 + addr % 8;
 
-//	printf("Setting reg %04x to %02x\n", addr, b);
+	printf("Setting reg %04x to %02x\n", addr, b);
 
 	switch (addr) {
 	case OAMDMA:
@@ -151,22 +228,19 @@ ppu_reg_set(word addr, byte b)
 		ppu.addr++;
 		ppu.addr %= 2;
 		break;
-	case 0x4015:
-	case 0x4017:
-		/* Some APU registers, ignored for now */
+	case PPUDATA:
+		ppu_setb(ppu.PPUADDR, b);
+		ppu.PPUADDR += (ppu.PPUCTRL & (1 << 2)) ? 32 : 1;
+		break;
+	case OAMADDR:
+		ppu.OAMADDR = b;
+		break;
+	case OAMDATA:
+		ppu.spr_ram[(byte)(ppu.OAMADDR - 1)] = b;
 		break;
 	default:
 		todo();
 	}
-}
-
-byte
-ppu_is_reg(word addr)
-{
-	if (0x2000 <= addr && addr < 0x4020)
-		return TRUE;
-	else
-		return FALSE;
 }
 
 byte
@@ -187,25 +261,36 @@ ppu_is_reg_r(word addr)
 }
 
 void
-ppu_run_cycles(int n)
+ppu_run_cycle()
 {
-	int i;
+	if (!ppu.ready && cpu_cycles > 29658)
+		ppu.ready = 1;
 
-	for (i = 0; i < n; i++) {
-		ppu.ready = 0;
+	ppu.scanline++;
+
+	if (ppu.scanline == PPU_SCANLINE_PF - PPU_CYCLES_VBLNK - 1) {
+		/* In vblank = True */
+		ppu.PPUSTATUS |=  (1 << 7);
+		/* In Sprite-0 hit = False */
+		ppu.PPUSTATUS &= ~(1 << 6);
+
+		/* If should raise nmi */
+		if (ppu.PPUCTRL & (1 << 7))
+			cpu_nmi();
+	}
+	else if (ppu.scanline == PPU_SCANLINE_PF) {
+		ppu.scanline = 0;
+
+		/* In vblank = False */
+		ppu.PPUSTATUS &= ~(1 << 7);
 	}
 }
 
 void
-ntsc_init()
+ppu_run_cycles(int n)
 {
-//	todo();
-}
-
-void
-pal_init()
-{
-	todo();
+	while (n--)
+		ppu_run_cycle();
 }
 
 void
@@ -216,17 +301,5 @@ ppu_init()
 		ppu.PPUADDR = 0;
 	ppu.PPUSTATUS = (1 << 7) | (1 << 5);
 	ppu.ready = 0;
-#ifdef NTSC
-	#ifdef PAL
-		#error "Only one can be picked!"
-	#endif
-	ntsc_init();
-#else
-	#ifdef PAL
-		pal_init();
-	#else
-		#error "Pick at least one!"
-	#endif
-#endif
 }
 

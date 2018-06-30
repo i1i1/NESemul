@@ -47,6 +47,7 @@ load_header(FILE *fp, struct ines_header *hdr)
 		die("Wrong magick number!");
 
 	mapper = ((hdr->flag7 >> 4) << 4)| (hdr->flag6 >> 4);
+	ppu.vmap = hdr->flag6 % 2;
 	printhdr(hdr);
 }
 
@@ -98,14 +99,18 @@ main_loop()
 {
 	/* All time in ms */
 	uint32_t curtm, dsttm;
-	int cycles;
+	int cpu_cycles, ppu_cycles;
 
-	cycles = 1000;
-	dsttm = cycles * 1000 / CPU_FREQ;
+	cpu_cycles = CPU_CYCLES_P_SCANLINE;
+	ppu_cycles = 1;
+
+	dsttm = cpu_cycles * 1000 / CPU_FREQ;
 
 	for (;;) {
 		curtm = SDL_GetTicks();
-		cpu_run_cycles(cycles);
+
+		ppu_run_cycles(ppu_cycles);
+		cpu_run_cycles(cpu_cycles);
 
 		if (window_event_exit())
 			window_deinit();

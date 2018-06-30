@@ -24,7 +24,7 @@ ram_getw(word addr)
 byte
 ram_general_getb(word addr)
 {
-	if	(ppu_is_reg(addr))
+	if	(cpu_is_reg(addr))
 		return ppu_reg_get(addr);
 	else if (addr < 0x2000)
 		return ram[addr % 0x800];
@@ -45,7 +45,7 @@ ram_setb(word addr, byte b)
 void
 ram_general_setb(word addr, byte b)
 {
-	if	(ppu_is_reg(addr))
+	if	(cpu_is_reg(addr))
 		ppu_reg_set(addr, b);
 	else if (addr < 0x2000)
 		ram[addr % 0x800] = b;
@@ -63,6 +63,7 @@ ram_pushb(byte b)
 void
 ram_pushw(word w)
 {
+	printf("Pushed %04x addr\n", w);
 	ram_pushb(w >> 8);
 	ram_pushb(w % 0x100);
 }

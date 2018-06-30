@@ -19,7 +19,7 @@ void addr_mode_aby();
 
 void addr_mode_rel();
 
-void addr_mode_a();
+void addr_mode_imp();
 
 
 #endif /* _ADDR_MODES_H_ */

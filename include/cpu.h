@@ -61,6 +61,9 @@ void cpu_init();
 void cpu_run_cycles(int n);
 
 void cpu_irq();
+void cpu_nmi();
+
+byte cpu_is_reg(word addr);
 
 
 #endif /* _CPU_H_ */

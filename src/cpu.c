@@ -90,6 +90,15 @@ cpu_init()
 		die("Unknown mapper");
 }
 
+byte
+cpu_is_reg(word addr)
+{
+	if (0x2000 <= addr && addr < 0x4020)
+		return TRUE;
+	else
+		return FALSE;
+}
+
 void
 cpu_irq()
 {
@@ -101,5 +110,18 @@ cpu_irq()
 	reg.P.fl.I = 1;
 
 	reg.PC = ram_getw(0xFFFE);
+}
+
+void
+cpu_nmi()
+{
+	printf("\nNMI Occured!\n\n");
+
+	ram_pushw(reg.PC);
+	ram_pushb(reg.P.n);
+
+	reg.P.fl.I = 1;
+
+	reg.PC = ram_getw(0xFFFA);
 }
 

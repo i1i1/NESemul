@@ -25,8 +25,8 @@ addr_mode_ind()
 
 	reg.PC += 2;
 
-	if (!(ppu_is_reg(cpu_addr) ||
-	    ppu_is_reg_r(cpu_addr) ))
+	if (!(cpu_is_reg(cpu_addr)) ||
+	    ppu_is_reg_r(cpu_addr)  )
 		cpu_arg = ram_getb(cpu_addr);
 }
 
@@ -35,8 +35,8 @@ addr_mode_zp()
 {
 	cpu_addr = ram_getb(reg.PC);
 	reg.PC++;
-	if (!(ppu_is_reg(cpu_addr) ||
-	    ppu_is_reg_r(cpu_addr) ))
+	if (!(cpu_is_reg(cpu_addr)) ||
+	    ppu_is_reg_r(cpu_addr)  )
 		cpu_arg = ram_getb(cpu_addr);
 }
 
@@ -45,8 +45,8 @@ addr_mode_zpx()
 {
 	cpu_addr = (byte)(ram_getb(reg.PC) + reg.X);
 	reg.PC++;
-	if (!(ppu_is_reg(cpu_addr) ||
-	    ppu_is_reg_r(cpu_addr) ))
+	if (!(cpu_is_reg(cpu_addr)) ||
+	    ppu_is_reg_r(cpu_addr)  )
 		cpu_arg = ram_getb(cpu_addr);
 }
 
@@ -55,8 +55,8 @@ addr_mode_zpy()
 {
 	cpu_addr = (byte)(ram_getb(reg.PC) + reg.Y);
 	reg.PC++;
-	if (!(ppu_is_reg(cpu_addr) ||
-	    ppu_is_reg_r(cpu_addr) ))
+	if (!(cpu_is_reg(cpu_addr)) ||
+	    ppu_is_reg_r(cpu_addr)  )
 		cpu_arg = ram_getb(cpu_addr);
 }
 
@@ -65,8 +65,8 @@ addr_mode_izx()
 {
 	cpu_addr = ram_getw((byte)(ram_getb(reg.PC) + reg.X));
 	reg.PC++;
-	if (!(ppu_is_reg(cpu_addr) ||
-	    ppu_is_reg_r(cpu_addr) ))
+	if (!(cpu_is_reg(cpu_addr)) ||
+	    ppu_is_reg_r(cpu_addr)  )
 		cpu_arg = ram_getb(cpu_addr);
 }
 
@@ -83,8 +83,8 @@ addr_mode_abs()
 {
 	cpu_addr = ram_getw(reg.PC);
 	reg.PC += 2;
-	if (!(ppu_is_reg(cpu_addr) ||
-	    ppu_is_reg_r(cpu_addr) ))
+	if (!(cpu_is_reg(cpu_addr)) ||
+	    ppu_is_reg_r(cpu_addr)  )
 		cpu_arg = ram_getb(cpu_addr);
 }
 
@@ -113,8 +113,7 @@ addr_mode_rel()
 }
 
 void
-addr_mode_a()
+addr_mode_imp()
 {
-	cpu_arg = reg.A;
 }
 

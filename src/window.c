@@ -14,7 +14,8 @@ window_init()
 {
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_Init(SDL_INIT_TIMER);
-	SDL_CreateWindowAndRenderer(WINDOW_SURW, WINDOW_SURH,
+	SDL_CreateWindowAndRenderer(WINDOW_SURW * WINDOW_PXL_SZ,
+				    WINDOW_SURH * WINDOW_PXL_SZ,
 				    0, &window, &renderer);
 
 	SDL_RenderPresent(renderer);
