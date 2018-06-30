@@ -9,13 +9,6 @@
 
 #include "opcodes.h"
 
-/* TODO:
- * Need to rewrite addr_modes.* and opcodes.*
- * Need to separate address modes and opcodes:
- * Let opcodes to be standalone functions
- * Or to deal somehow with a problem of reading
- * value in address mode when u need to only write there
- */
 
 /* Some helpfull rutines for setting reg.P flags */
 static void
@@ -79,7 +72,7 @@ op_brk()
 static void
 op_ora()
 {
-	reg.A |= cpu_arg;
+	reg.A |= ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -88,11 +81,15 @@ op_ora()
 static void
 op_asl()
 {
-	flag_carry(cpu_arg >> 7);
-	flag_zero(cpu_arg << 1);
-	flag_neg(cpu_arg << 1);
+	byte b;
 
-	ram_setb(cpu_addr, cpu_arg << 1);
+	b = ram_getb(cpu_addr);
+
+	flag_carry(b >> 7);
+	flag_zero(b << 1);
+	flag_neg(b << 1);
+
+	ram_setb(cpu_addr, b << 1);
 }
 
 static void
@@ -134,7 +131,7 @@ op_jsr()
 static void
 op_and()
 {
-	reg.A &= cpu_arg;
+	reg.A &= ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -143,26 +140,32 @@ op_and()
 static void
 op_bit()
 {
-	reg.P.fl.N = cpu_arg >> 7;
-	reg.P.fl.V = cpu_arg >> 6;
+	byte b;
 
-	flag_zero(reg.A & cpu_arg);
+	b = ram_getb(cpu_addr);
+
+	reg.P.fl.N = b >> 7;
+	reg.P.fl.V = b >> 6;
+
+	flag_zero(reg.A & b);
 }
 
 static void
 op_rol()
 {
 	int c;
+	byte b;
 
-	c = cpu_arg >> 7;
-	cpu_arg <<= 1;
-	cpu_arg |= reg.P.fl.C;
+	b = ram_getb(cpu_addr);
+	c = b >> 7;
+	b <<= 1;
+	b |= reg.P.fl.C;
 	reg.P.fl.C = c;
 
-	flag_neg(cpu_arg);
-	flag_zero(cpu_arg);
+	flag_neg(b);
+	flag_zero(b);
 
-	ram_setb(cpu_addr, cpu_arg);
+	ram_setb(cpu_addr, b);
 }
 
 static void
@@ -210,7 +213,7 @@ op_rti()
 static void
 op_eor()
 {
-	reg.A ^= cpu_arg;
+	reg.A ^= ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -219,11 +222,15 @@ op_eor()
 static void
 op_lsr()
 {
-	flag_carry(cpu_arg % 2);
-	flag_zero(cpu_arg >> 1);
-	flag_neg(cpu_arg >> 1);
+	byte b;
 
-	ram_setb(cpu_addr, cpu_arg >> 1);
+	b = ram_getb(cpu_addr);
+
+	flag_carry(b % 2);
+	flag_zero(b >> 1);
+	flag_neg(b >> 1);
+
+	ram_setb(cpu_addr, b >> 1);
 }
 
 static void
@@ -267,7 +274,7 @@ op_adc()
 {
 	int res;
 
-	res = cpu_arg + reg.A + reg.P.fl.C;
+	res = ram_getb(cpu_addr) + reg.A + reg.P.fl.C;
 
 	flag_zero(res);
 	flag_carry(res);
@@ -279,16 +286,18 @@ static void
 op_ror()
 {
 	int c;
+	byte b;
 
-	c = cpu_arg % 2;
-	cpu_arg >>= 1;
-	cpu_arg |= reg.P.fl.C << 7;
+	b = ram_getb(cpu_addr);
+	c = b % 2;
+	b >>= 1;
+	b |= reg.P.fl.C << 7;
 	reg.P.fl.C = c;
 
-	flag_neg(cpu_arg);
-	flag_zero(cpu_arg);
+	flag_neg(b);
+	flag_zero(b);
 
-	ram_setb(cpu_addr, cpu_arg);
+	ram_setb(cpu_addr, b);
 }
 
 static void
@@ -385,7 +394,7 @@ op_txs()
 static void
 op_ldy()
 {
-	reg.Y = cpu_arg;
+	reg.Y = ram_getb(cpu_addr);
 
 	flag_neg(reg.Y);
 	flag_zero(reg.Y);
@@ -394,7 +403,7 @@ op_ldy()
 static void
 op_lda()
 {
-	reg.A = cpu_arg;
+	reg.A = ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -403,7 +412,7 @@ op_lda()
 static void
 op_ldx()
 {
-	reg.X = cpu_arg;
+	reg.X = ram_getb(cpu_addr);
 
 	flag_neg(reg.X);
 	flag_zero(reg.X);
@@ -449,11 +458,15 @@ op_tsx()
 static void
 op_cpy()
 {
-	if (reg.Y == cpu_arg) {
+	byte b;
+
+	b = ram_getb(cpu_addr);
+
+	if (reg.Y == b) {
 		reg.P.fl.N = 0;
 		reg.P.fl.Z = 1;
 		reg.P.fl.C = 1;
-	} else if (reg.Y < cpu_arg) {
+	} else if (reg.Y < b) {
 		reg.P.fl.N = 1;
 		reg.P.fl.Z = 0;
 		reg.P.fl.C = 0;
@@ -467,11 +480,15 @@ op_cpy()
 static void
 op_cmp()
 {
-	if (reg.A == (sbyte)cpu_arg) {
+	sbyte sb;
+
+	sb = (sbyte)ram_getb(cpu_addr);
+
+	if (reg.A == sb) {
 		reg.P.fl.N = 0;
 		reg.P.fl.Z = 1;
 		reg.P.fl.C = 1;
-	} else if (reg.A < (sbyte)cpu_arg) {
+	} else if (reg.A < sb) {
 		reg.P.fl.N = 1;
 		reg.P.fl.Z = 0;
 		reg.P.fl.C = 0;
@@ -487,7 +504,7 @@ op_dec()
 {
 	sbyte n;
 
-	n = cpu_arg - 1;
+	n = ram_getb(cpu_addr) - 1;
 
 	ram_setb(cpu_addr, n);
 
@@ -529,11 +546,15 @@ op_cld()
 static void
 op_cpx()
 {
-	if (reg.X < cpu_arg) {
+	byte b;
+
+	b = ram_getb(cpu_addr);
+
+	if (reg.X < b) {
 		reg.P.fl.N = 1;
 		reg.P.fl.Z = 0;
 		reg.P.fl.C = 0;
-	} else if (reg.X == cpu_arg) {
+	} else if (reg.X == b) {
 		reg.P.fl.N = 0;
 		reg.P.fl.Z = 1;
 		reg.P.fl.C = 1;
@@ -549,7 +570,7 @@ op_sbc()
 {
 	int res;
 
-	res = reg.A - cpu_arg - (1 - reg.P.fl.C);
+	res = reg.A - ram_getb(cpu_addr) - (1 - reg.P.fl.C);
 
 	flag_zero(res);
 	flag_carry(res);
@@ -564,7 +585,7 @@ op_inc()
 {
 	sbyte n;
 
-	n = cpu_arg + 1;
+	n = ram_getb(cpu_addr) + 1;
 
 	flag_neg(n);
 	flag_zero(n);
