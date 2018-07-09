@@ -27,4 +27,7 @@ void window_set_to_layer(struct window_layer *lp);
 
 byte window_event_exit();
 
+byte joy1_read_state();
+void joy1_write(byte b);
+
 #endif /* _WINDOW_H_ */

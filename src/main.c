@@ -132,7 +132,7 @@ main_loop()
 			window_deinit();
 
 		curtm = SDL_GetTicks() - curtm;
-		SDL_Delay(curtm - dsttm);
+//		SDL_Delay(curtm - dsttm);
 	}
 }
 

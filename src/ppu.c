@@ -86,11 +86,7 @@ ppu_reg_get(word addr)
 {
 	byte ret;
 
-	/* If some WO register */
-	if (addr >= 0x4000)
-		return 0;
-	/* Some mapping */
-	else
+	if (addr < 0x4000)
 		addr = 0x2000 + (addr - 0x2000) % 8;
 
 	printf("Accessing %04x register\n", addr);
@@ -113,6 +109,9 @@ ppu_reg_get(word addr)
 		return ret;
 	case OAMDATA:
 		return ppu.spr_ram[ppu.OAMADDR++];
+	/* Joystick 1 */
+	case 0x4016:
+		return joy1_read_state();
 	/* If some WO register or invalide register */
 	default:
 		//todo();
@@ -169,8 +168,12 @@ ppu_getb(word a)
 {
 	a %= 0x4000;
 
-	if (a < 0x2000)
-		return chr_rom.bank[chr_rom.cur][a];
+	if (a < 0x2000) {
+		if (chr_rom.n)
+			return chr_rom.bank[chr_rom.cur][a];
+		else
+			return ppu.ram[a];
+	}
 
 	/* Mirroring */
 	if (0x3f20 <= a)
@@ -200,7 +203,7 @@ void
 ppu_reg_set(word addr, byte b)
 {
 	/* Some APU registers. Ignored for now */
-	if (addr >= 0x4000 && (addr != OAMDMA))
+	if (addr >= 0x4000 && (addr != OAMDMA) && (addr != 0x4016))
 		return;
 
 	/* Some mirroring */
@@ -249,6 +252,10 @@ ppu_reg_set(word addr, byte b)
 		break;
 	case OAMDATA:
 		ppu.spr_ram[(byte)(ppu.OAMADDR - 1)] = b;
+		break;
+	/* Joystick 1 */
+	case 0x4016:
+		joy1_write(b);
 		break;
 	default:
 		todo();

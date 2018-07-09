@@ -80,3 +80,42 @@ window_flush()
 	SDL_RenderPresent(renderer);
 }
 
+static byte kjoy1;
+static byte joy1_pw;
+
+byte
+joy1_read_state()
+{
+	const byte *state = SDL_GetKeyboardState(NULL);
+
+	switch (kjoy1++) {
+	case 0: /* A */
+		return state[SDL_SCANCODE_K];
+	case 1: /* B */
+		return state[SDL_SCANCODE_J];
+	case 2: /* SELECT */
+		return state[SDL_SCANCODE_U];
+	case 3: /* START */
+		return state[SDL_SCANCODE_I];
+	case 4: /* UP */
+		return state[SDL_SCANCODE_W];
+	case 5: /* DOWN */
+		return state[SDL_SCANCODE_S];
+	case 6: /* LEFT */
+		return state[SDL_SCANCODE_A];
+	case 7: /* RIGHT */
+		return state[SDL_SCANCODE_D];
+	default:
+		return 1;
+	}
+}
+
+void
+joy1_write(byte b)
+{
+	b &= 1;
+	if (b == 0 && joy1_pw == 1)
+		kjoy1 = 0;
+	joy1_pw = b;
+}
+
