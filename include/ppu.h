@@ -37,7 +37,6 @@ struct ppu {
 };
 
 extern struct ppu ppu;
-extern const byte ppu_palette[3 * 0x40];
 
 void ppu_init();
 

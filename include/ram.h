@@ -15,7 +15,17 @@ struct prg_rom {
 	byte up;
 };
 
+struct chr_rom {
+	/* Array of arrays of banks of PRG_ROM_BANK_SZ */
+	byte **bank;
+	byte n;
+
+	/* Mapper info */
+	byte cur;
+};
+
 extern struct prg_rom prg_rom;
+extern struct chr_rom chr_rom;
 
 /* Functions for emulator usage */
 byte ram_getb(word addr);

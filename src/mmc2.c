@@ -11,6 +11,7 @@ mmc2_init()
 {
 	prg_rom.low = 1;
 	prg_rom.up = prg_rom.n - 1;
+	chr_rom.cur = 0;
 	printf("\tMapper 2!\n\n");
 }
 

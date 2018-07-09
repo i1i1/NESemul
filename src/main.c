@@ -30,7 +30,6 @@ printhdr(struct ines_header *hdr)
 	printf("\tPRG-ROM - %d * 16 Kb\n", hdr->prg_rom_num);
 	printf("\tCHR-ROM - %d * 8 Kb\n", hdr->chr_rom_num);
 	printf("\tPRG-RAM - %d * 8 Kb\n", hdr->prg_ram_num);
-	printf("\tPRG-RAM - %d * 8 Kb\n", hdr->prg_ram_num);
 }
 
 void
@@ -50,15 +49,6 @@ load_header(FILE *fp, struct ines_header *hdr)
 	ppu.vmap = hdr->flag6 % 2;
 	printhdr(hdr);
 }
-
-/* TODO! */
-#if 0
-void
-load_chr(FILE *fp, struct ines_header *hdr)
-{
-	;
-}
-#endif
 
 void
 load_prg_rom(FILE *fp, byte prg_rom_max)
@@ -87,11 +77,37 @@ load_prg_rom(FILE *fp, byte prg_rom_max)
 }
 
 void
+load_chr_rom(FILE *fp, byte chr_rom_max)
+{
+	unsigned int i;
+	int ret;
+
+	chr_rom.bank = malloc(sizeof(void *) * chr_rom_max);
+
+	if (!chr_rom.bank)
+		die("Not enough memory!");
+
+	for (i = 0; i < chr_rom_max; i++) {
+		chr_rom.bank[i] = malloc(PRG_ROM_BANK_SZ);
+
+		if (!chr_rom.bank[i])
+			die("Not enough memory!");
+
+		ret = fread(chr_rom.bank[i], 1, 0x2000, fp);
+
+		if (ret == 0 && ferror(fp))
+			die("Wrong format of file!");
+	}
+
+	chr_rom.n = chr_rom_max;
+}
+
+void
 load_rom(FILE *fp)
 {
 	load_header(fp, &hdr);
 	load_prg_rom(fp, hdr.prg_rom_num);
-//	load_chr(fp, &hdr);
+	load_chr_rom(fp, hdr.chr_rom_num);
 }
 
 void
@@ -132,6 +148,8 @@ main(int argc, char **argv)
 		die("Cant open file!");
 
 	load_rom(fp);
+	fclose(fp);
+
 	ram_init();
 	cpu_init();
 	ppu_init();

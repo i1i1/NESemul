@@ -7,6 +7,8 @@
 
 
 struct prg_rom prg_rom = { NULL, 0, 0, 0 };
+struct chr_rom chr_rom = { NULL, 0, 0 };
+
 byte ram[0x10000] = { 0 };
 
 byte
@@ -45,6 +47,9 @@ ram_setb(word addr, byte b)
 void
 ram_general_setb(word addr, byte b)
 {
+	if (0x200 <= addr && addr < 0x300)
+		printf("Set Sprite $%04x to 0x%02x\n", addr, b);
+
 	if	(cpu_is_reg(addr))
 		ppu_reg_set(addr, b);
 	else if (addr < 0x2000)

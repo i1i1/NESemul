@@ -274,12 +274,17 @@ op_adc()
 {
 	int res;
 
-	res = ram_getb(cpu_addr) + reg.A + reg.P.fl.C;
+	res = ram_getb(cpu_addr) + (byte)reg.A + reg.P.fl.C;
 
 	flag_zero(res);
-	flag_carry(res);
+	if (res > 256)
+		reg.P.fl.C = 1;
+	else
+		reg.P.fl.C = 0;
 	flag_over(res);
 	flag_neg(res);
+
+	reg.A = res;
 }
 
 static void

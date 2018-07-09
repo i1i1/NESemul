@@ -7,7 +7,8 @@
 #define WINDOW_FRAME_PS		60
 
 #define WINDOW_SURW		256
-#define WINDOW_SURH		224
+#define WINDOW_SURH		240
+//#define WINDOW_SURH		224
 
 /* Scanline per frame (of which is V-Blank) */
 #define PPU_SCANLINE_PF		262
