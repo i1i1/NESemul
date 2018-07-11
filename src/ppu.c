@@ -124,11 +124,6 @@ ppu_load_spr_ram(word addr)
 {
 	int i;
 
-	printf("Loading spr_ram addr = %04x!\n", addr);
-	for (i = 0; i < 0x100; i++) {
-		printf("OAM $%02x 0x%02x\n", i, ram_getb(addr + i));
-	}
-
 	for (i = 0; i < 0x100; i++)
 		ppu.spr_ram[i] = ram_getb(addr + i);
 }
@@ -251,7 +246,7 @@ ppu_reg_set(word addr, byte b)
 		ppu.OAMADDR = b;
 		break;
 	case OAMDATA:
-		ppu.spr_ram[(byte)(ppu.OAMADDR - 1)] = b;
+		ppu.spr_ram[ppu.OAMADDR++] = b;
 		break;
 	/* Joystick 1 */
 	case 0x4016:
@@ -280,54 +275,73 @@ ppu_is_reg_r(word addr)
 }
 
 word
-ppu_patt_tbl()
+ppu_bg_patt_tbl()
+{
+	return (ppu.PPUCTRL & (1 << 4)) ? 0x1000 : 0x0000;
+}
+
+word
+ppu_spr_patt_tbl()
 {
 	return (ppu.PPUCTRL & (1 << 3)) ? 0x1000 : 0x0000;
 }
 
 word
-ppu_nametbl()
+ppu_name_tbl()
 {
 	return 0x2000 + (ppu.PPUCTRL & 3) * 0x400;
 }
 
 void
-ppu_draw_bg_line(byte mirror)
+ppu_draw_bg_line(byte mirr)
 {
-	#if 0
-	int tx, ty, ti, pal_idx;
-	word name, attr, patt, pal, tile;
+	int i, j, tile, clr, x, y, ti;
+	word patt, name, att, pal;
 
-	name = ppu_nametbl();
-	attr = name + 0x3C0;
+	patt = ppu_bg_patt_tbl();
+	name = ppu_name_tbl();
+	att = name + 0x3C0 + (mirr ? 0x400 : 0);
 
-	patt = ppu_patt_tbl();
+#define SETCLR(clr, tile, x, y) do {						\
+		clr = (ppu_getb((tile) + (y) + 8) >> (7 - (x))) & 1; 		\
+		clr = (clr << 1) | ((ppu_getb((tile) + (y)) >> (7 - (x))) & 1); \
+	} while(0)
 
-	ty = ppu.scanline / 8;
+	y = ppu.scanline;
 
-	for (tx = ppu.PPUMASK >> 1; tx < 32; tx++) {
-		if (tx * 8 - ppu.PPUSCROLL_X + (mirror ? 256 : 0) > 256)
+	for (i = 0; i < 32; i++) {
+		if (i * 8 - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
 			continue;
 
-		ti = ppu_getb(name + 32 * ty + tx + (mirror ? 0x400 : 0));
-		tile = patt + 16 * ti;
+		x = i * 8;
+		ti = ppu_getb(name + (y / 8) * 32 + i);
+		tile = patt + ti * 16;
+
+
+		pal = att + (i >> 2) + (y >> 5) * 8;
+		if (ti) {
+			printf("ti = %d\n", ti);
+			printf("pal = %04x\n", pal - 0x23c0);
+		}
+		pal = ppu_getb(pal);
+		if (y % 32 > 16)
+			pal >>= 4;
+		if (i % 32 > 16)
+			pal >>= 2;
+
+		pal &= 3;
+
+		pal = 0x3f00 + pal * 4;
+
+		for (j = 0; j < 8; j++) {
+			SETCLR(clr, tile, j, y % 8);
+			if (clr) {
+				bg.arr[y + 1][x + j - ppu.PPUSCROLL_X + (mirr ? 256 : 0)] = ppu_getb(pal + clr);
+				printf("clr %d!\n", bg.arr[y + 1][x + j]);
+				printf("y = $%x, x = $%x!\n", y, x + j);
+			}
+		}
 	}
-
-	for (i = 0; i < 256; i += 8) {
-		pal_idx = ppu_getb(attr + i / 32 +
-				   (ppu.scanline >> 5) * 8);
-
-		if (ppu.scanline % 32 >= 16)
-			pal_idx >>= 4;
-		if ((i / 8) % 32 >= 16)
-			pal_idx >>= 2;
-		pal_idx &= 3;
-
-		pal = 0x3f00 + pal_idx * 4;
-
-		;
-	}
-	#endif
 }
 
 void
@@ -338,7 +352,7 @@ ppu_draw_sprites_line()
 	byte sprh, clr, hflip, vflip;
 	word patt, tile, pal;
 
-	patt = ppu_patt_tbl();
+	patt = ppu_spr_patt_tbl();
 
 	sprh = (ppu.PPUCTRL & (1 << 5)) ? 16 : 8;
 
@@ -353,8 +367,8 @@ ppu_draw_sprites_line()
 		if (y > ppu.scanline || y + sprh <= ppu.scanline)
 			continue;
 
-		printf("Sprite %d!\n", i);
-		printf("Scanline %d!\n", ppu.scanline);
+//		printf("Sprite %d!\n", i);
+//		printf("Scanline %d!\n", ppu.scanline);
 
 #define PRINTTOBIN(var)	do {						\
 			int _i;						\
@@ -362,13 +376,14 @@ ppu_draw_sprites_line()
 				printf("%d", (var) & (1 << _i) ? 1 : 0);\
 		} while(0)
 
-		for (j = 0; j < 0x10; j++) {
-			printf("$%04x = 0x%02x -- ", tile + j,
-			       ppu_getb(tile + j));
-			PRINTTOBIN(ppu_getb(tile + j));
-			printf("\n");
-		}
+//		for (j = 0; j < 0x10; j++) {
+//			printf("$%04x = 0x%02x -- ", tile + j,
+//			       ppu_getb(tile + j));
+//			PRINTTOBIN(ppu_getb(tile + j));
+//			printf("\n");
+//		}
 
+/* 
 		printf("\n");
 
 		for (j = 0; j < 4; j++) {
@@ -379,7 +394,7 @@ ppu_draw_sprites_line()
 		}
 
 		printf("\n");
-
+*/
 		if (ppu.spr_ram[i + 2] & 0xc0)
 			todo();
 
@@ -392,29 +407,36 @@ ppu_draw_sprites_line()
 			SETCLR(clr, tile, j, ppu.scanline - y);
 
 			if (clr) {
-				bg.arr[ppu.scanline + 1][x + j] = ppu_getb(pal + clr);
-				printf("clr %d!\n", bg.arr[ppu.scanline + 1][x + j]);
+				spr1.arr[ppu.scanline + 1][x + j] = ppu_getb(pal + clr);
+				printf("clr %d!\n", spr1.arr[ppu.scanline + 1][x + j]);
 				printf("y = $%x, x = $%x!\n", ppu.scanline + 1, x + j);
 			}
 		}
 	}
-	//todo();
+#undef SETCLR
+#undef PRINTTOBIN
 }
 
 void
 ppu_draw_screen()
 {
+	window_set_to_layer(&spr0);
 	window_set_to_layer(&bg);
+	window_set_to_layer(&spr1);
 	window_flush();
 
 	window_layer_clear(&bg, ppu_getb(0x3f00));
-	window_layer_clear(&spr0, ppu_getb(0x3f00));
-	window_layer_clear(&spr1, ppu_getb(0x3f00));
+	window_set_to_layer(&bg);
+
+	window_layer_clear(&bg, 0xff);
+	window_layer_clear(&spr0, 0xff);
+	window_layer_clear(&spr1, 0xff);
 }
 
 void
 ppu_run_cycle()
 {
+	printf("Start of scanline %d\n", ppu.scanline);
 	if (!ppu.ready && cpu_cycles > 29658)
 		ppu.ready = 1;
 
@@ -422,8 +444,10 @@ ppu_run_cycle()
 		/* Rendering! */
 
 		/* If background */
-//		if (ppu.PPUMASK & (1 << 3))
-//			ppu_draw_bg_line();
+		if (ppu.PPUMASK & (1 << 3)) {
+			ppu_draw_bg_line(FALSE);
+//			ppu_draw_bg_line(TRUE);
+		}
 
 		/* If sprite */
 		if (ppu.PPUMASK & (1 << 4))
@@ -450,7 +474,6 @@ ppu_run_cycle()
 	else if (ppu.scanline == 261) {
 		/* Dummy scanline */
 
-		printf("start of cadr!\n");
 		/* In vblank = False */
 		ppu.PPUSTATUS &= ~(1 << 7);
 	}

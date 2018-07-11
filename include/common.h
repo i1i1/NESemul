@@ -21,8 +21,8 @@
 #ifdef DEBUG
 	#define dprintf(...)	printf(__VA_ARGS__)
 #else
-	#define dprintf(...)
-	#define printf(...)
+	#define dprintf(...)	do { } while(0)
+	#define printf(...)	do { } while(0)
 #endif
 
 #define todo()	do {								\

@@ -60,8 +60,14 @@ window_set_to_layer(struct window_layer *lp)
 	int i, j, k, l;
 	struct color c;
 
+	if (!lp || !lp->arr)
+		return;
+
 	for (i = 0; i < WINDOW_SURH; i++) {
 		for (j = 0; j < WINDOW_SURW; j++) {
+			if (!lp->arr || lp->arr[i][j] == 0xff)
+				continue;
+
 			c = ppu_palette[lp->arr[i][j]];
 			SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 0);
 
@@ -72,6 +78,7 @@ window_set_to_layer(struct window_layer *lp)
 							    i * WINDOW_PXL_SZ + l);
 		}
 	}
+	printf("Drawing screen\n");
 }
 
 void

@@ -19,7 +19,7 @@ byte mapper;
 void
 die(const char *msg)
 {
-	printf("Error occured:\n\t%s\n", msg);
+	fprintf(stderr, "Error occured:\n\t%s\n", msg);
 	exit(1);
 }
 
@@ -126,6 +126,7 @@ main_loop()
 		curtm = SDL_GetTicks();
 
 		ppu_run_cycles(ppu_cycles);
+		printf("In loop!\n");
 		cpu_run_cycles(cpu_cycles);
 
 		if (window_event_exit())

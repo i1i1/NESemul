@@ -485,15 +485,15 @@ op_cpy()
 static void
 op_cmp()
 {
-	sbyte sb;
+	byte b;
 
-	sb = (sbyte)ram_getb(cpu_addr);
+	b = ram_getb(cpu_addr);
 
-	if (reg.A == sb) {
+	if ((byte)reg.A == b) {
 		reg.P.fl.N = 0;
 		reg.P.fl.Z = 1;
 		reg.P.fl.C = 1;
-	} else if (reg.A < sb) {
+	} else if ((byte)reg.A < b) {
 		reg.P.fl.N = 1;
 		reg.P.fl.Z = 0;
 		reg.P.fl.C = 0;
