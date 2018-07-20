@@ -68,7 +68,6 @@ ram_pushb(byte b)
 void
 ram_pushw(word w)
 {
-	printf("Pushed %04x addr\n", w);
 	ram_pushb(w >> 8);
 	ram_pushb(w % 0x100);
 }

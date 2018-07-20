@@ -128,14 +128,17 @@ ppu_load_spr_ram(word addr)
 		ppu.spr_ram[i] = ram_getb(addr + i);
 }
 
-void
-ppu_setb(word a, byte b)
+word
+ppu_get_addr(word a)
 {
 	a %= 0x4000;
 
 	/* Mirroring */
 	if (0x3f20 <= a)
-		a = 0x3f20 + a % 0x20;
+		a = 0x3f00 + a % 0x20;
+
+	if (a == 0x3f10 || a == 0x3f14 || a == 0x3f18 || a == 0x3f1c)
+		a -= 0x10;
 
 	/* Mirroring */
 	if (0x3000 <= a && a < 0x3f00)
@@ -143,7 +146,7 @@ ppu_setb(word a, byte b)
 
 	/* If not a nametable */
 	if (!(0x2000 <= a && a < 0x3000))
-		goto setting;
+		return a;
 
 	/* Some nametable mirroring */
 	if (ppu.vmap)
@@ -154,51 +157,32 @@ ppu_setb(word a, byte b)
 		else
 			a = 0x2800 + a % 0x400;
 
-setting:
-	ppu.ram[a] = b;
+	return a;
+}
+
+void
+ppu_setb(word a, byte b)
+{
+	printf("Real addr equals to %04x!\n", ppu_get_addr(a));
+	ppu.ram[ppu_get_addr(a)] = b;
 }
 
 byte
 ppu_getb(word a)
 {
-	a %= 0x4000;
+	a = ppu_get_addr(a);
 
-	if (a < 0x2000) {
-		if (chr_rom.n)
-			return chr_rom.bank[chr_rom.cur][a];
-		else
-			return ppu.ram[a];
-	}
-
-	/* Mirroring */
-	if (0x3f20 <= a)
-		a = 0x3f20 + a % 0x20;
-
-	/* Mirroring */
-	if (0x3000 <= a && a < 0x3f00)
-		a = 0x2000 + a % 0x1000;
-
-	/* If not a nametable */
-	if (a >= 0x3000)
-		return ppu.ram[a];
-
-	/* Some nametable mirroring */
-	if (ppu.vmap)
-		a = 0x2000 + a % 0x800;
+	if (a < 0x2000 && chr_rom.n)
+		return chr_rom.bank[chr_rom.cur][a];
 	else
-		if (0x2000 <= a && a < 0x2800)
-			a = 0x2000 + a % 0x400;
-		else
-			a = 0x2800 + a % 0x400;
-
-	return ppu.ram[a];
+		return ppu.ram[a];
 }
 
 void
 ppu_reg_set(word addr, byte b)
 {
 	/* Some APU registers. Ignored for now */
-	if (addr >= 0x4000 && (addr != OAMDMA) && (addr != 0x4016))
+	if (addr >= 0x4000 && addr != OAMDMA && addr != 0x4016)
 		return;
 
 	/* Some mirroring */
@@ -232,7 +216,7 @@ ppu_reg_set(word addr, byte b)
 		if (!ppu.ready)
 			break;
 
-		ppu.PPUADDR <<= ppu.addr * 8;
+		ppu.PPUADDR <<= 8;
 		ppu.PPUADDR |= b;
 
 		ppu.addr++;
@@ -302,46 +286,73 @@ ppu_draw_bg_line(byte mirr)
 	name = ppu_name_tbl();
 	att = name + 0x3C0 + (mirr ? 0x400 : 0);
 
-#define SETCLR(clr, tile, x, y) do {						\
-		clr = (ppu_getb((tile) + (y) + 8) >> (7 - (x))) & 1; 		\
-		clr = (clr << 1) | ((ppu_getb((tile) + (y)) >> (7 - (x))) & 1); \
-	} while(0)
-
 	y = ppu.scanline;
 
 	for (i = 0; i < 32; i++) {
-		if (i * 8 - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
-			continue;
+//		if (i * 8 - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
+//			continue;
 
 		x = i * 8;
-		ti = ppu_getb(name + (y / 8) * 32 + i);
+		ti = ppu_getb(name + (y >> 3) * 32 + i);
 		tile = patt + ti * 16;
 
+		pal = att + (y >> 5) * 8 + (i >> 2);
 
-		pal = att + (i >> 2) + (y >> 5) * 8;
+		#if 0
 		if (ti) {
+			printf("addr = %04x\n", name + (y >> 3) * 32 + i);
 			printf("ti = %d\n", ti);
 			printf("pal = %04x\n", pal - 0x23c0);
 		}
+		else {
+			for (j = 0; j < 8; j++)
+				bg.arr[y][i * 8 + j] = 0x19;
+			continue;
+		}
+		#endif
+
+		if (ti) {
+			printf("addr = %04x\n", name + (y >> 3) * 32 + i);
+			printf("ti = %c\n", ti);
+			printf("pal = %04x\n", pal);
+		}
+
 		pal = ppu_getb(pal);
-		if (y % 32 > 16)
+
+		// 33221100 = 2 bits per attribute area
+		// 0 1		= their relative position on the screen
+		// 2 3
+		// each box is 16x16 pixels
+
+		if (y % 32 >= 16)
 			pal >>= 4;
-		if (i % 32 > 16)
+		if (i % 4 >= 2)
 			pal >>= 2;
 
 		pal &= 3;
 
+		if (ti)
+			printf("pal = %d\n", pal);
+
 		pal = 0x3f00 + pal * 4;
 
+		byte low, high;
+
+		low = ppu_getb(tile + y % 8);
+		high = ppu_getb(tile + y % 8 + 8);
+
+#define GETCLR(low, high, x)	(((high >> (7 - (x))) & 1) << 1) | ((low >> (7 - (x))) & 1)
+
 		for (j = 0; j < 8; j++) {
-			SETCLR(clr, tile, j, y % 8);
+			clr = GETCLR(high, low, j);
 			if (clr) {
-				bg.arr[y + 1][x + j - ppu.PPUSCROLL_X + (mirr ? 256 : 0)] = ppu_getb(pal + clr);
-				printf("clr %d!\n", bg.arr[y + 1][x + j]);
+				bg.arr[y][x + j - ppu.PPUSCROLL_X + (mirr ? 256 : 0)] = ppu_getb(pal + clr);
+				printf("clr %d!\n", bg.arr[y][x + j]);
 				printf("y = $%x, x = $%x!\n", y, x + j);
 			}
 		}
 	}
+#undef SETCLR
 }
 
 void
@@ -434,6 +445,20 @@ ppu_draw_screen()
 }
 
 void
+ppu_print_data()
+{
+	int i, j;
+
+	printf("\n\nPPU memory\n");
+	for (i = 0x2000; i < 0x2400; i += 0x10) {
+		printf("%04x:\t", i);
+		for (j = 0; j < 0x10; j++)
+			printf("%02x ", ppu_getb(i + j));
+		printf("\n");
+	}
+}
+
+void
 ppu_run_cycle()
 {
 	printf("Start of scanline %d\n", ppu.scanline);
@@ -481,7 +506,9 @@ ppu_run_cycle()
 	ppu.scanline++;
 
 	if (ppu.scanline >= PPU_SCANLINE_PF) {
+		printf("Drawing screen\n");
 		ppu_draw_screen();
+		ppu_print_data();
 		ppu.scanline = 0;
 	}
 }

@@ -78,7 +78,6 @@ window_set_to_layer(struct window_layer *lp)
 							    i * WINDOW_PXL_SZ + l);
 		}
 	}
-	printf("Drawing screen\n");
 }
 
 void

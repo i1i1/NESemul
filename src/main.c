@@ -117,7 +117,7 @@ main_loop()
 	uint32_t curtm, dsttm;
 	int cpu_cycles, ppu_cycles;
 
-	cpu_cycles = CPU_CYCLES_P_SCANLINE;
+	cpu_cycles = (int)CPU_CYCLES_P_SCANLINE;
 	ppu_cycles = 1;
 
 	dsttm = cpu_cycles * 1000 / CPU_FREQ;
@@ -126,7 +126,7 @@ main_loop()
 		curtm = SDL_GetTicks();
 
 		ppu_run_cycles(ppu_cycles);
-		printf("In loop!\n");
+//		printf("In loop!\n");
 		cpu_run_cycles(cpu_cycles);
 
 		if (window_event_exit())
