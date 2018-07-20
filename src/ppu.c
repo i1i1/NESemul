@@ -288,6 +288,7 @@ ppu_draw_bg_line(byte mirr)
 	att = name + 0x3C0 + (mirr ? 0x400 : 0);
 
 	y = (ppu.scanline + ppu.PPUSCROLL_Y) % 240;
+//	y = ppu.scanline;
 
 	for (i = 0; i < 32; i++) {
 		if (i * 8 - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
@@ -330,7 +331,7 @@ ppu_draw_bg_line(byte mirr)
 #define GETCLR(low, high, x)	(((high >> (7 - (x))) & 1) << 1) | ((low >> (7 - (x))) & 1)
 
 		for (j = 0; j < 8; j++) {
-			clr = GETCLR(high, low, j);
+			clr = GETCLR(low, high, j);
 			if (clr) {
 				bg.arr[y][x + j - ppu.PPUSCROLL_X + (mirr ? 256 : 0)] = ppu_getb(pal + clr);
 				printf("clr %d!\n", bg.arr[y][x + j]);
@@ -413,9 +414,9 @@ ppu_draw_sprites_line()
 			clr = GETCLR(low, high, (hflip ? 7 - j : j));
 
 			if (clr) {
-				spr1.arr[ppu.scanline][x + (hflip ? 7 - j : j)] = ppu_getb(pal + clr);
-				printf("clr %d!\n", spr1.arr[ppu.scanline][x + (hflip ? 7 - j : j)]);
-				printf("y = $%x, x = $%x!\n", ppu.scanline, x + (hflip ? 7 - j : j));
+				spr1.arr[ppu.scanline + 1][x + j] = ppu_getb(pal + clr);
+				printf("clr %d!\n", spr1.arr[ppu.scanline + 1][x + j]);
+				printf("y = $%x, x = $%x!\n", ppu.scanline + 1, x + j);
 			}
 		}
 	}

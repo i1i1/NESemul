@@ -29,24 +29,6 @@ flag_zero(sbyte n)
 		reg.P.fl.Z = 0;
 }
 
-static void
-flag_carry(sbyte n)
-{
-	if (n != 0)
-		reg.P.fl.C = 1;
-	else
-		reg.P.fl.C = 0;
-}
-
-static void
-flag_over(int n)
-{
-	if (-127 < n || n > 128)
-		reg.P.fl.V = 1;
-	else
-		reg.P.fl.V = 0;
-}
-
 
 static void
 op_nop()
@@ -85,21 +67,25 @@ op_asl()
 
 	b = ram_getb(cpu_addr);
 
-	flag_carry(b >> 7);
-	flag_zero(b << 1);
-	flag_neg(b << 1);
+	reg.P.fl.C = b >> 7;
 
-	ram_setb(cpu_addr, b << 1);
+	b <<= 1;
+
+	flag_zero(b);
+	flag_neg(b);
+
+	ram_setb(cpu_addr, b);
 }
 
 static void
 op_asl_a()
 {
-	flag_carry(reg.A >> 7);
-	flag_zero(reg.A << 1);
-	flag_neg(reg.A << 1);
+	reg.P.fl.C = reg.A >> 7;
 
 	reg.A <<= 1;
+
+	flag_zero(reg.A);
+	flag_neg(reg.A);
 }
 
 static void
@@ -226,7 +212,7 @@ op_lsr()
 
 	b = ram_getb(cpu_addr);
 
-	flag_carry(b % 2);
+	reg.P.fl.C = b % 2;
 	flag_zero(b >> 1);
 	flag_neg(b >> 1);
 
@@ -272,19 +258,26 @@ op_rts()
 static void
 op_adc()
 {
-	int res;
+	int res_c, res_v;
 
-	res = ram_getb(cpu_addr) + (byte)reg.A + reg.P.fl.C;
+	res_v = (sbyte)ram_getb(cpu_addr) + reg.A + reg.P.fl.C;
+	res_c = ram_getb(cpu_addr) + (byte)reg.A + reg.P.fl.C;
 
-	flag_zero(res);
-	if (res > 256)
+	flag_zero(res_c);
+
+	if (res_c > 0xFF)
 		reg.P.fl.C = 1;
 	else
 		reg.P.fl.C = 0;
-	flag_over(res);
-	flag_neg(res);
 
-	reg.A = res;
+	if (-128 < res_v && res_v > 127)
+		reg.P.fl.V = 1;
+	else
+		reg.P.fl.V = 0;
+
+	flag_neg(res_v);
+
+	reg.A = res_v;
 }
 
 static void
@@ -573,21 +566,26 @@ op_cpx()
 static void
 op_sbc()
 {
-	int res;
+	int res_c, res_v;
 
-	res = reg.A - ram_getb(cpu_addr) - (1 - reg.P.fl.C);
+	res_v = reg.A - (sbyte)ram_getb(cpu_addr) - (1 - reg.P.fl.C);
+	res_c = (byte)reg.A - ram_getb(cpu_addr) - (1 - reg.P.fl.C);
 
-	flag_zero(res);
+	flag_zero(res_c);
 
-	if (res > 256)
+	if (res_c > 0xFF)
 		reg.P.fl.C = 1;
 	else
 		reg.P.fl.C = 0;
 
-	flag_over(res);
-	flag_neg(res);
+	if (-128 < res_v && res_v > 127)
+		reg.P.fl.V = 1;
+	else
+		reg.P.fl.V = 0;
 
-	reg.A = res;
+	flag_neg(res_v);
+
+	reg.A = res_v;
 }
 
 static void
