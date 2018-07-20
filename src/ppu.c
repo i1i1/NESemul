@@ -281,35 +281,23 @@ ppu_draw_bg_line(byte mirr)
 {
 	int i, j, tile, clr, x, y, ti;
 	word patt, name, att, pal;
+	byte low, high;
 
 	patt = ppu_bg_patt_tbl();
-	name = ppu_name_tbl();
+	name = ppu_name_tbl() + (mirr ? 0x400 : 0);
 	att = name + 0x3C0 + (mirr ? 0x400 : 0);
 
-	y = ppu.scanline;
+	y = (ppu.scanline + ppu.PPUSCROLL_Y) % 240;
 
 	for (i = 0; i < 32; i++) {
-//		if (i * 8 - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
-//			continue;
+		if (i * 8 - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
+			continue;
 
 		x = i * 8;
 		ti = ppu_getb(name + (y >> 3) * 32 + i);
 		tile = patt + ti * 16;
 
 		pal = att + (y >> 5) * 8 + (i >> 2);
-
-		#if 0
-		if (ti) {
-			printf("addr = %04x\n", name + (y >> 3) * 32 + i);
-			printf("ti = %d\n", ti);
-			printf("pal = %04x\n", pal - 0x23c0);
-		}
-		else {
-			for (j = 0; j < 8; j++)
-				bg.arr[y][i * 8 + j] = 0x19;
-			continue;
-		}
-		#endif
 
 		if (ti) {
 			printf("addr = %04x\n", name + (y >> 3) * 32 + i);
@@ -336,8 +324,6 @@ ppu_draw_bg_line(byte mirr)
 
 		pal = 0x3f00 + pal * 4;
 
-		byte low, high;
-
 		low = ppu_getb(tile + y % 8);
 		high = ppu_getb(tile + y % 8 + 8);
 
@@ -352,34 +338,41 @@ ppu_draw_bg_line(byte mirr)
 			}
 		}
 	}
-#undef SETCLR
+#undef GETCLR
 }
 
 void
 ppu_draw_sprites_line()
 {
 	int i, j;
+	int ti;
 	byte x, y;
 	byte sprh, clr, hflip, vflip;
+	byte low, high;
 	word patt, tile, pal;
 
+	sprh = (ppu.PPUCTRL & (1 << 5)) ? 16 : 8;
 	patt = ppu_spr_patt_tbl();
 
-	sprh = (ppu.PPUCTRL & (1 << 5)) ? 16 : 8;
-
 	for (i = 0; i < 0x100; i += 4) {
-		tile = patt + 16 * ppu.spr_ram[i + 1];
+		ti = ppu.spr_ram[i + 1];
 		x = ppu.spr_ram[i + 3];
 		y = ppu.spr_ram[i];
 		pal = 0x3f10 + (ppu.spr_ram[i + 2] & 3) * 4;
 		hflip = ppu.spr_ram[i + 2] & (1 << 6);
 		vflip = ppu.spr_ram[i + 2] & (1 << 7);
 
+		if (sprh == 16) {
+			patt = ti % 2 * 0x1000;
+			ti -= ti % 2;
+		}
+		tile = patt + 16 * ti;
+
 		if (y > ppu.scanline || y + sprh <= ppu.scanline)
 			continue;
 
-//		printf("Sprite %d!\n", i);
-//		printf("Scanline %d!\n", ppu.scanline);
+		printf("Sprite %d!\n", i);
+		printf("Scanline %d!\n", ppu.scanline);
 
 #define PRINTTOBIN(var)	do {						\
 			int _i;						\
@@ -387,14 +380,13 @@ ppu_draw_sprites_line()
 				printf("%d", (var) & (1 << _i) ? 1 : 0);\
 		} while(0)
 
-//		for (j = 0; j < 0x10; j++) {
-//			printf("$%04x = 0x%02x -- ", tile + j,
-//			       ppu_getb(tile + j));
-//			PRINTTOBIN(ppu_getb(tile + j));
-//			printf("\n");
-//		}
+		for (j = 0; j < (sprh == 16 ? 0x20 : 0x10); j++) {
+			printf("$%04x = 0x%02x -- ", tile + j,
+			       ppu_getb(tile + j));
+			PRINTTOBIN(ppu_getb(tile + j));
+			printf("\n");
+		}
 
-/* 
 		printf("\n");
 
 		for (j = 0; j < 4; j++) {
@@ -405,26 +397,29 @@ ppu_draw_sprites_line()
 		}
 
 		printf("\n");
-*/
-		if (ppu.spr_ram[i + 2] & 0xc0)
-			todo();
 
-#define SETCLR(clr, tile, x, y) do {						\
-		clr = (ppu_getb((tile) + (y) + 8) >> (7 - (x))) & 1; 		\
-		clr = (clr << 1) | ((ppu_getb((tile) + (y)) >> (7 - (x))) & 1); \
-	} while(0)
+		if ((ppu.scanline - y >= 8 && vflip == 0) || (ppu.scanline - y < 8 && vflip)) {
+			if (vflip == 0)
+				y += 8;
+			tile += 0x10;
+		}
+
+		low = ppu_getb(tile + (vflip ? 15 - ppu.scanline + y : ppu.scanline - y));
+		high = ppu_getb(tile + 8 + (vflip ? 7 - ppu.scanline + y : ppu.scanline - y));
+
+#define GETCLR(low, high, x)	(((high >> (7 - (x))) & 1) << 1) | ((low >> (7 - (x))) & 1)
 
 		for (j = 0; j < 8; j++) {
-			SETCLR(clr, tile, j, ppu.scanline - y);
+			clr = GETCLR(low, high, (hflip ? 7 - j : j));
 
 			if (clr) {
-				spr1.arr[ppu.scanline + 1][x + j] = ppu_getb(pal + clr);
-				printf("clr %d!\n", spr1.arr[ppu.scanline + 1][x + j]);
-				printf("y = $%x, x = $%x!\n", ppu.scanline + 1, x + j);
+				spr1.arr[ppu.scanline][x + (hflip ? 7 - j : j)] = ppu_getb(pal + clr);
+				printf("clr %d!\n", spr1.arr[ppu.scanline][x + (hflip ? 7 - j : j)]);
+				printf("y = $%x, x = $%x!\n", ppu.scanline, x + (hflip ? 7 - j : j));
 			}
 		}
 	}
-#undef SETCLR
+#undef GETCLR
 #undef PRINTTOBIN
 }
 
@@ -471,7 +466,7 @@ ppu_run_cycle()
 		/* If background */
 		if (ppu.PPUMASK & (1 << 3)) {
 			ppu_draw_bg_line(FALSE);
-//			ppu_draw_bg_line(TRUE);
+			ppu_draw_bg_line(TRUE);
 		}
 
 		/* If sprite */
