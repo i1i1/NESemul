@@ -80,6 +80,8 @@ const struct color ppu_palette[0x40] = {
 };
 #undef CLR
 
+int color_tbl[256][256][8];
+
 
 byte
 ppu_reg_get(word addr)
@@ -328,18 +330,13 @@ ppu_draw_bg_line(byte mirr)
 		low = ppu_getb(tile + y % 8);
 		high = ppu_getb(tile + y % 8 + 8);
 
-#define GETCLR(low, high, x)	(((high >> (7 - (x))) & 1) << 1) | ((low >> (7 - (x))) & 1)
-
 		for (j = 0; j < 8; j++) {
-			clr = GETCLR(low, high, j);
-			if (clr) {
-				bg.arr[y][x + j - ppu.PPUSCROLL_X + (mirr ? 256 : 0)] = ppu_getb(pal + clr);
-				printf("clr %d!\n", bg.arr[y][x + j]);
-				printf("y = $%x, x = $%x!\n", y, x + j);
-			}
+			clr = color_tbl[low][high][j];
+			bg.arr[y][x + j - ppu.PPUSCROLL_X + (mirr ? 256 : 0)] = ppu_getb(pal + clr);
+			printf("clr %d!\n", bg.arr[y][x + j]);
+			printf("y = $%x, x = $%x!\n", y, x + j);
 		}
 	}
-#undef GETCLR
 }
 
 void
@@ -372,6 +369,7 @@ ppu_draw_sprites_line()
 		if (y > ppu.scanline || y + sprh <= ppu.scanline)
 			continue;
 
+		#if 0
 		printf("Sprite %d!\n", i);
 		printf("Scanline %d!\n", ppu.scanline);
 
@@ -398,6 +396,7 @@ ppu_draw_sprites_line()
 		}
 
 		printf("\n");
+		#endif
 
 		if ((ppu.scanline - y >= 8 && vflip == 0) || (ppu.scanline - y < 8 && vflip)) {
 			if (vflip == 0)
@@ -408,10 +407,8 @@ ppu_draw_sprites_line()
 		low = ppu_getb(tile + (vflip ? 15 - ppu.scanline + y : ppu.scanline - y));
 		high = ppu_getb(tile + 8 + (vflip ? 7 - ppu.scanline + y : ppu.scanline - y));
 
-#define GETCLR(low, high, x)	(((high >> (7 - (x))) & 1) << 1) | ((low >> (7 - (x))) & 1)
-
 		for (j = 0; j < 8; j++) {
-			clr = GETCLR(low, high, (hflip ? 7 - j : j));
+			clr = color_tbl[low][high][(hflip ? 7 - j : j)];
 
 			if (clr) {
 				spr1.arr[ppu.scanline + 1][x + j] = ppu_getb(pal + clr);
@@ -420,20 +417,25 @@ ppu_draw_sprites_line()
 			}
 		}
 	}
-#undef GETCLR
 #undef PRINTTOBIN
 }
 
 void
 ppu_draw_screen()
 {
-	window_set_to_layer(&spr0);
-	window_set_to_layer(&bg);
-	window_set_to_layer(&spr1);
-	window_flush();
+	int i, j;
 
-	window_layer_clear(&bg, ppu_getb(0x3f00));
-	window_set_to_layer(&bg);
+	for (i = 0; i < 240; i++) {
+		for (j = 0; j < 256; j++) {
+			if (spr1.arr[i][j] != 0xff)
+				spr0.arr[i][j] = spr1.arr[i][j];
+			else if (bg.arr[i][j] != 0xff)
+				spr0.arr[i][j] = bg.arr[i][j];
+		}
+	}
+
+	window_set_to_layer(&spr0);
+	window_flush();
 
 	window_layer_clear(&bg, 0xff);
 	window_layer_clear(&spr0, 0xff);
@@ -502,9 +504,9 @@ ppu_run_cycle()
 	ppu.scanline++;
 
 	if (ppu.scanline >= PPU_SCANLINE_PF) {
-		printf("Drawing screen\n");
+//		printf("Drawing screen\n");
 		ppu_draw_screen();
-		ppu_print_data();
+//		ppu_print_data();
 		ppu.scanline = 0;
 	}
 }
@@ -525,5 +527,14 @@ ppu_init()
 	ppu.PPUSTATUS = (1 << 7) | (1 << 5);
 	ppu.ready = 0;
 	ppu.scanline = 0;
+
+	int low, high, x;
+
+#define GETCLR(low, high, x)	(((high >> (7 - (x))) & 1) << 1) | ((low >> (7 - (x))) & 1)
+
+	for (low = 0; low < 256; low++)
+		for (high = 0; high < 256; high++)
+			for (x = 0; x < 8; x++)
+				color_tbl[low][high][x] = GETCLR((byte)low, (byte)high, x);
 }
 

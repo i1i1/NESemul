@@ -60,22 +60,25 @@ window_set_to_layer(struct window_layer *lp)
 	int i, j, k, l;
 	struct color c;
 
+	SDL_Rect tmp;
+
+	tmp.w = tmp.h = WINDOW_PXL_SZ;
+
 	if (!lp || !lp->arr)
 		return;
 
 	for (i = 0; i < WINDOW_SURH; i++) {
 		for (j = 0; j < WINDOW_SURW; j++) {
-			if (!lp->arr || lp->arr[i][j] == 0xff)
+			if (lp->arr[i][j] == 0xff)
 				continue;
 
 			c = ppu_palette[lp->arr[i][j]];
-			SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 0);
 
-			for (k = 0; k < WINDOW_PXL_SZ; k++)
-				for (l = 0; l < WINDOW_PXL_SZ; l++)
-					SDL_RenderDrawPoint(renderer,
-							    j * WINDOW_PXL_SZ + k,
-							    i * WINDOW_PXL_SZ + l);
+			tmp.x = j * WINDOW_PXL_SZ;
+			tmp.y = i * WINDOW_PXL_SZ;
+
+			SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 0);
+			SDL_RenderFillRect(renderer, &tmp);
 		}
 	}
 }

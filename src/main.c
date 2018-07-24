@@ -116,24 +116,29 @@ main_loop()
 	/* All time in ms */
 	uint32_t curtm, dsttm;
 	int cpu_cycles, ppu_cycles;
+	int i;
 
 	cpu_cycles = (int)CPU_CYCLES_P_SCANLINE;
 	ppu_cycles = 1;
 
-	dsttm = cpu_cycles * 1000 / CPU_FREQ;
+	dsttm = cpu_cycles * 1000 * 262 / CPU_FREQ;
 
 	for (;;) {
 		curtm = SDL_GetTicks();
 
-		ppu_run_cycles(ppu_cycles);
-//		printf("In loop!\n");
-		cpu_run_cycles(cpu_cycles);
+		for (i = 0; i < 262; i++) {
+			ppu_run_cycles(ppu_cycles);
+			cpu_run_cycles(cpu_cycles);
+		}
 
 		if (window_event_exit())
 			window_deinit();
 
 		curtm = SDL_GetTicks() - curtm;
-//		SDL_Delay(curtm - dsttm);
+		fprintf(stdout, "%x %x\n", curtm, dsttm);
+
+		if (curtm < dsttm)
+			SDL_Delay(dsttm - curtm);
 	}
 }
 
