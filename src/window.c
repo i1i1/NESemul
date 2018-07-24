@@ -65,7 +65,7 @@ window_set_to_layer(struct window_layer *lp)
 
 	for (i = 0; i < WINDOW_SURH; i++) {
 		for (j = 0; j < WINDOW_SURW; j++) {
-			if (!lp->arr || lp->arr[i][j] == 0xff)
+			if (lp->arr[i][j] == 0xff)
 				continue;
 
 			c = ppu_palette[lp->arr[i][j]];

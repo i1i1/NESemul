@@ -20,7 +20,7 @@ void
 die(const char *msg)
 {
 	fprintf(stderr, "Error occured:\n\t%s\n", msg);
-	exit(1);
+	exit(0);
 }
 
 void
@@ -30,6 +30,8 @@ printhdr(struct ines_header *hdr)
 	printf("\tPRG-ROM - %d * 16 Kb\n", hdr->prg_rom_num);
 	printf("\tCHR-ROM - %d * 8 Kb\n", hdr->chr_rom_num);
 	printf("\tPRG-RAM - %d * 8 Kb\n", hdr->prg_ram_num);
+
+	(void) hdr;
 }
 
 void
@@ -126,14 +128,13 @@ main_loop()
 		curtm = SDL_GetTicks();
 
 		ppu_run_cycles(ppu_cycles);
-//		printf("In loop!\n");
 		cpu_run_cycles(cpu_cycles);
 
 		if (window_event_exit())
 			window_deinit();
 
 		curtm = SDL_GetTicks() - curtm;
-//		SDL_Delay(curtm - dsttm);
+		SDL_Delay(curtm - dsttm);
 	}
 }
 

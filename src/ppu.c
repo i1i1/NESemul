@@ -291,10 +291,11 @@ ppu_draw_bg_line(byte mirr)
 //	y = ppu.scanline;
 
 	for (i = 0; i < 32; i++) {
-		if (i * 8 - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
+		x = i * 8;
+
+		if (x - ppu.PPUSCROLL_X + (mirr ? 256 : 0) > 256)
 			continue;
 
-		x = i * 8;
 		ti = ppu_getb(name + (y >> 3) * 32 + i);
 		tile = patt + ti * 16;
 
@@ -348,7 +349,7 @@ ppu_draw_sprites_line()
 	int i, j;
 	int ti;
 	byte x, y;
-	byte sprh, clr, hflip, vflip;
+	byte sprh, clr, hflip, vflip, prior;
 	byte low, high;
 	word patt, tile, pal;
 
@@ -356,12 +357,17 @@ ppu_draw_sprites_line()
 	patt = ppu_spr_patt_tbl();
 
 	for (i = 0; i < 0x100; i += 4) {
+		y = ppu.spr_ram[i];
+
+		if (y > ppu.scanline || y + sprh <= ppu.scanline)
+			continue;
+
 		ti = ppu.spr_ram[i + 1];
 		x = ppu.spr_ram[i + 3];
-		y = ppu.spr_ram[i];
 		pal = 0x3f10 + (ppu.spr_ram[i + 2] & 3) * 4;
 		hflip = ppu.spr_ram[i + 2] & (1 << 6);
 		vflip = ppu.spr_ram[i + 2] & (1 << 7);
+		prior = ppu.spr_ram[i + 2] & (1 << 7);
 
 		if (sprh == 16) {
 			patt = ti % 2 * 0x1000;
@@ -369,9 +375,7 @@ ppu_draw_sprites_line()
 		}
 		tile = patt + 16 * ti;
 
-		if (y > ppu.scanline || y + sprh <= ppu.scanline)
-			continue;
-
+		#if 0
 		printf("Sprite %d!\n", i);
 		printf("Scanline %d!\n", ppu.scanline);
 
@@ -398,6 +402,8 @@ ppu_draw_sprites_line()
 		}
 
 		printf("\n");
+#undef PRINTTOBIN
+		#endif
 
 		if ((ppu.scanline - y >= 8 && vflip == 0) || (ppu.scanline - y < 8 && vflip)) {
 			if (vflip == 0)
@@ -414,14 +420,21 @@ ppu_draw_sprites_line()
 			clr = GETCLR(low, high, (hflip ? 7 - j : j));
 
 			if (clr) {
-				spr1.arr[ppu.scanline + 1][x + j] = ppu_getb(pal + clr);
-				printf("clr %d!\n", spr1.arr[ppu.scanline + 1][x + j]);
+				int color;
+
+				color = ppu_getb(pal + clr);
+
+				if (prior)
+					spr0.arr[ppu.scanline + 1][x + j] = color;
+				else
+					spr1.arr[ppu.scanline + 1][x + j] = color;
+
+				printf("clr %d!\n", color);
 				printf("y = $%x, x = $%x!\n", ppu.scanline + 1, x + j);
 			}
 		}
 	}
 #undef GETCLR
-#undef PRINTTOBIN
 }
 
 void
@@ -458,6 +471,7 @@ void
 ppu_run_cycle()
 {
 	printf("Start of scanline %d\n", ppu.scanline);
+
 	if (!ppu.ready && cpu_cycles > 29658)
 		ppu.ready = 1;
 
@@ -502,9 +516,9 @@ ppu_run_cycle()
 	ppu.scanline++;
 
 	if (ppu.scanline >= PPU_SCANLINE_PF) {
-		printf("Drawing screen\n");
+//		printf("Drawing screen\n");
 		ppu_draw_screen();
-		ppu_print_data();
+//		ppu_print_data();
 		ppu.scanline = 0;
 	}
 }

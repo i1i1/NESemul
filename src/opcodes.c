@@ -54,7 +54,7 @@ op_brk()
 static void
 op_ora()
 {
-	reg.A |= ram_getb(cpu_addr);
+	reg.A = (byte)reg.A | ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -72,7 +72,7 @@ op_asl()
 	b <<= 1;
 
 	flag_zero(b);
-	flag_neg(b);
+	flag_neg((sbyte)b);
 
 	ram_setb(cpu_addr, b);
 }
@@ -117,7 +117,7 @@ op_jsr()
 static void
 op_and()
 {
-	reg.A &= ram_getb(cpu_addr);
+	reg.A = (byte)reg.A & ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -148,7 +148,7 @@ op_rol()
 	b |= reg.P.fl.C;
 	reg.P.fl.C = c;
 
-	flag_neg(b);
+	flag_neg((sbyte)b);
 	flag_zero(b);
 
 	ram_setb(cpu_addr, b);
@@ -199,7 +199,7 @@ op_rti()
 static void
 op_eor()
 {
-	reg.A ^= ram_getb(cpu_addr);
+	reg.A = (byte)reg.A ^ ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -213,10 +213,12 @@ op_lsr()
 	b = ram_getb(cpu_addr);
 
 	reg.P.fl.C = b % 2;
-	flag_zero(b >> 1);
-	flag_neg(b >> 1);
+	b >>= 1;
 
-	ram_setb(cpu_addr, b >> 1);
+	flag_zero(b);
+	flag_neg((sbyte)b);
+
+	ram_setb(cpu_addr, b);
 }
 
 static void
@@ -292,7 +294,7 @@ op_ror()
 	b |= reg.P.fl.C << 7;
 	reg.P.fl.C = c;
 
-	flag_neg(b);
+	flag_neg((sbyte)b);
 	flag_zero(b);
 
 	ram_setb(cpu_addr, b);
@@ -334,7 +336,7 @@ op_sei()
 static void
 op_sta()
 {
-	ram_setb(cpu_addr, reg.A);
+	ram_setb(cpu_addr, (byte)reg.A);
 }
 
 static void
@@ -354,7 +356,7 @@ op_dey()
 {
 	reg.Y--;
 
-	flag_neg(reg.Y);
+	flag_neg((sbyte)reg.Y);
 	flag_zero(reg.Y);
 }
 
@@ -363,7 +365,7 @@ op_txa()
 {
 	reg.A = reg.X;
 
-	flag_neg(reg.A);
+	flag_neg((sbyte)reg.A);
 	flag_zero(reg.A);
 }
 
@@ -379,7 +381,7 @@ op_tya()
 {
 	reg.A = reg.Y;
 
-	flag_neg(reg.A);
+	flag_neg((sbyte)reg.A);
 	flag_zero(reg.A);
 }
 
@@ -394,14 +396,14 @@ op_ldy()
 {
 	reg.Y = ram_getb(cpu_addr);
 
-	flag_neg(reg.Y);
+	flag_neg((sbyte)reg.Y);
 	flag_zero(reg.Y);
 }
 
 static void
 op_lda()
 {
-	reg.A = ram_getb(cpu_addr);
+	reg.A = (sbyte)ram_getb(cpu_addr);
 
 	flag_neg(reg.A);
 	flag_zero(reg.A);
@@ -412,7 +414,7 @@ op_ldx()
 {
 	reg.X = ram_getb(cpu_addr);
 
-	flag_neg(reg.X);
+	flag_neg((sbyte)reg.X);
 	flag_zero(reg.X);
 }
 
@@ -421,7 +423,7 @@ op_tay()
 {
 	reg.Y = reg.A;
 
-	flag_neg(reg.Y);
+	flag_neg((sbyte)reg.Y);
 	flag_zero(reg.Y);
 }
 
@@ -430,7 +432,7 @@ op_tax()
 {
 	reg.X = reg.A;
 
-	flag_neg(reg.X);
+	flag_neg((sbyte)reg.X);
 	flag_zero(reg.X);
 }
 
@@ -500,13 +502,13 @@ op_cmp()
 static void
 op_dec()
 {
-	sbyte n;
+	byte n;
 
 	n = ram_getb(cpu_addr) - 1;
 
 	ram_setb(cpu_addr, n);
 
-	flag_neg(n);
+	flag_neg((sbyte)n);
 	flag_zero(n);
 }
 
@@ -515,7 +517,7 @@ op_iny()
 {
 	reg.Y++;
 
-	flag_neg(reg.Y);
+	flag_neg((sbyte)reg.Y);
 	flag_zero(reg.Y);
 }
 
@@ -524,7 +526,7 @@ op_dex()
 {
 	reg.X--;
 
-	flag_neg(reg.X);
+	flag_neg((sbyte)reg.X);
 	flag_zero(reg.X);
 }
 
@@ -591,11 +593,11 @@ op_sbc()
 static void
 op_inc()
 {
-	sbyte n;
+	byte n;
 
 	n = ram_getb(cpu_addr) + 1;
 
-	flag_neg(n);
+	flag_neg((sbyte)n);
 	flag_zero(n);
 
 	ram_setb(cpu_addr, n);
@@ -606,7 +608,7 @@ op_inx()
 {
 	reg.X++;
 
-	flag_neg(reg.X);
+	flag_neg((sbyte)reg.X);
 	flag_zero(reg.X);
 }
 
