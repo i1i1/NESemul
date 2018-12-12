@@ -20,7 +20,7 @@ void
 die(const char *msg)
 {
 	fprintf(stderr, "Error occured:\n\t%s\n", msg);
-	exit(1);
+	exit(0);
 }
 
 void
@@ -30,6 +30,9 @@ printhdr(struct ines_header *hdr)
 	printf("\tPRG-ROM - %d * 16 Kb\n", hdr->prg_rom_num);
 	printf("\tCHR-ROM - %d * 8 Kb\n", hdr->chr_rom_num);
 	printf("\tPRG-RAM - %d * 8 Kb\n", hdr->prg_ram_num);
+	printf("\tVertical - %d\n", ppu.vmap);
+
+	(void) hdr;
 }
 
 void
@@ -45,8 +48,8 @@ load_header(FILE *fp, struct ines_header *hdr)
 	if (strncmp((char *)hdr->magick, "NES\x1A", 4) != 0)
 		die("Wrong magick number!");
 
-	mapper = ((hdr->flag7 >> 4) << 4)| (hdr->flag6 >> 4);
-	ppu.vmap = hdr->flag6 % 2;
+	mapper = ((hdr->flag7 >> 4) << 4) | (hdr->flag6 >> 4);
+	ppu.vmap = hdr->flag6 & 1;
 	printhdr(hdr);
 }
 
@@ -135,7 +138,6 @@ main_loop()
 			window_deinit();
 
 		curtm = SDL_GetTicks() - curtm;
-		fprintf(stdout, "%x %x\n", curtm, dsttm);
 
 		if (curtm < dsttm)
 			SDL_Delay(dsttm - curtm);
@@ -150,7 +152,9 @@ main(int argc, char **argv)
 	if (argc < 2)
 		die("Give me some file!");
 
-	if ((fp = fopen(argv[1], "r")) == NULL)
+	fp = fopen(argv[1], "r");
+
+	if (fp == NULL)
 		die("Cant open file!");
 
 	load_rom(fp);

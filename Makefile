@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -lSDL2 -Wextra -Wall -std=c99 -Iinclude
 OUT = emul
 #ROM = Metal_Gear.nes
-ROM = castleva.nes
+ROM = Mario.nes
 
 src = $(wildcard src/*.c)
 hdr = $(wildcard include/*.h)

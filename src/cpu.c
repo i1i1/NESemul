@@ -37,7 +37,10 @@ printinfo()
 	for (i = 0; i < ops[op].len; i++)
 		printf(" %02x", ram_getb(reg.PC + i));
 
-	if (i < 3)
+	if (ops[op].len == 1)
+		printf("\t\t");
+
+	if (ops[op].len == 2)
 		printf("\t");
 
 	printf("\t");

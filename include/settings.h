@@ -1,7 +1,7 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
-#define WINDOW_PXL_SZ	2
+#define WINDOW_PXL_SZ		4
 
 /* Frame per second */
 #define WINDOW_FRAME_PS		60

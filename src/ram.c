@@ -26,7 +26,7 @@ ram_getw(word addr)
 byte
 ram_general_getb(word addr)
 {
-	if	(cpu_is_reg(addr))
+	if (cpu_is_reg(addr))
 		return ppu_reg_get(addr);
 	else if (addr < 0x2000)
 		return ram[addr % 0x800];
@@ -47,8 +47,26 @@ ram_setb(word addr, byte b)
 void
 ram_general_setb(word addr, byte b)
 {
-	if (0x200 <= addr && addr < 0x300)
-		printf("Set Sprite $%04x to 0x%02x\n", addr, b);
+	if (0x200 <= addr && addr < 0x300) {
+		printf("\nSet Sprite $%02x ", (addr - 0x200) >> 2);
+
+		switch (addr % 4) {
+		case 0:
+			printf("Y pos");
+			break;
+		case 1:
+			printf("tile index");
+			break;
+		case 2:
+			printf("attributes");
+			break;
+		case 3:
+			printf("X pos");
+			break;
+		}
+
+		printf(" to 0x%02x\n\n", b);
+	}
 
 	if	(cpu_is_reg(addr))
 		ppu_reg_set(addr, b);

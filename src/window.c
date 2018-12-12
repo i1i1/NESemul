@@ -10,14 +10,25 @@ SDL_Renderer *renderer;
 
 struct window_layer bg, spr0, spr1;
 
+int joy_keys[] = {
+	[JOY_A		] = SDL_SCANCODE_K,
+	[JOY_B		] = SDL_SCANCODE_J,
+	[JOY_SELECT	] = SDL_SCANCODE_U,
+	[JOY_START	] = SDL_SCANCODE_I,
+	[JOY_UP		] = SDL_SCANCODE_W,
+	[JOY_DOWN	] = SDL_SCANCODE_S,
+	[JOY_LEFT	] = SDL_SCANCODE_A,
+	[JOY_RIGHT	] = SDL_SCANCODE_D,
+};
+
 void
 window_init()
 {
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_Init(SDL_INIT_TIMER);
 	SDL_CreateWindowAndRenderer(WINDOW_SURW * WINDOW_PXL_SZ,
-				    WINDOW_SURH * WINDOW_PXL_SZ,
-				    0, &window, &renderer);
+									(WINDOW_SURH - 16) * WINDOW_PXL_SZ,
+										0, &window, &renderer);
 
 	SDL_RenderPresent(renderer);
 }
@@ -57,22 +68,22 @@ window_layer_clear(struct window_layer *lp, byte b)
 void
 window_set_to_layer(struct window_layer *lp)
 {
-	int i, j, k, l;
+	int i, j;
 	struct color c;
 
 	SDL_Rect tmp;
 
 	tmp.w = tmp.h = WINDOW_PXL_SZ;
 
-	if (!lp || !lp->arr)
+	if (!lp)
 		return;
 
-	for (i = 0; i < WINDOW_SURH; i++) {
+	for (i = 0; i < WINDOW_SURH - 16; i++) {
 		for (j = 0; j < WINDOW_SURW; j++) {
 			if (lp->arr[i][j] == 0xff)
 				continue;
 
-			c = ppu_palette[lp->arr[i][j]];
+			c = ppu_palette[lp->arr[i + 8][j]];
 
 			tmp.x = j * WINDOW_PXL_SZ;
 			tmp.y = i * WINDOW_PXL_SZ;
@@ -96,27 +107,14 @@ byte
 joy1_read_state()
 {
 	const byte *state = SDL_GetKeyboardState(NULL);
+	int key;
 
-	switch (kjoy1++) {
-	case 0: /* A */
-		return state[SDL_SCANCODE_K];
-	case 1: /* B */
-		return state[SDL_SCANCODE_J];
-	case 2: /* SELECT */
-		return state[SDL_SCANCODE_U];
-	case 3: /* START */
-		return state[SDL_SCANCODE_I];
-	case 4: /* UP */
-		return state[SDL_SCANCODE_W];
-	case 5: /* DOWN */
-		return state[SDL_SCANCODE_S];
-	case 6: /* LEFT */
-		return state[SDL_SCANCODE_A];
-	case 7: /* RIGHT */
-		return state[SDL_SCANCODE_D];
-	default:
+	if (kjoy1 >= sizeof(joy_keys)/sizeof(joy_keys[0]))
 		return 1;
-	}
+
+	key = joy_keys[kjoy1++];
+
+	return state[key];
 }
 
 void

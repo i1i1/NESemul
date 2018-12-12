@@ -3,6 +3,17 @@
 
 #include "common.h"
 
+enum joy_keys {
+	JOY_A = 0,
+	JOY_B = 1,
+	JOY_SELECT = 2,
+	JOY_START = 3,
+	JOY_UP = 4,
+	JOY_DOWN = 5,
+	JOY_LEFT = 6,
+	JOY_RIGHT = 7,
+};
+
 struct window_layer {
 	byte arr[WINDOW_SURH][WINDOW_SURW];
 };
@@ -16,6 +27,7 @@ struct color {
 };
 
 extern const struct color ppu_palette[0x40];
+extern int joy_keys[];
 
 void window_init();
 void window_deinit();
