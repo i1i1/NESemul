@@ -10,8 +10,8 @@ struct cpu reg;
 
 int cpu_cycles;
 
-#define MAP(hex, init_, getb_, setb_)		\
-	[(hex)] = {				\
+#define MAP(hex, init_, getb_, setb_)	\
+	[(hex)] = {					\
 		.init = (init_),		\
 		.getb = (getb_),		\
 		.setb = (setb_)			\
@@ -49,11 +49,19 @@ printinfo()
 	if (ops[op].mode)
 		printf(" %s", ops[op].mname);
 
-	printf("\t\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x) "
-	       "(P=%02x; .C=%d .Z=%d .O=%d .N=%d) (cycle %d)\n",
+	printf(" ");
+
+	for (i = ops[op].len-1; i > 0; i--)
+		printf("%02x", ram_getb(reg.PC + i));
+
+	if (ops[op].len != 3)
+		printf("\t");
+
+	printf("\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x) "
+	       "(P=%02x; .C=%d .Z=%d .O=%d .N=%d)\n",
 	       (byte)reg.A, reg.X, reg.Y, reg.SP,
 	       reg.P.n, reg.P.fl.C, reg.P.fl.Z,
-	       reg.P.fl.V, reg.P.fl.N, cpu_cycles);
+	       reg.P.fl.V, reg.P.fl.N);
 }
 
 void

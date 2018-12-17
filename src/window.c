@@ -83,7 +83,7 @@ window_set_to_layer(struct window_layer *lp)
 			if (lp->arr[i][j] == 0xff)
 				continue;
 
-			c = ppu_palette[lp->arr[i + 8][j]];
+			c = ppu_palette[lp->arr[i][j]];
 
 			tmp.x = j * WINDOW_PXL_SZ;
 			tmp.y = i * WINDOW_PXL_SZ;

@@ -4,7 +4,9 @@
 #include "ppu.h"
 #include "window.h"
 
+
 struct ppu ppu;
+
 
 const struct color ppu_palette[0x40] = {
 #define CLR(idx, red, green, blue) [(idx)] = {	\
@@ -80,8 +82,11 @@ const struct color ppu_palette[0x40] = {
 };
 #undef CLR
 
+
 int color_tbl[256][256][8];
 byte ppu_sprite_hit_occured;
+
+int bg_trans[256][256];
 
 
 byte
@@ -307,19 +312,36 @@ ppu_get_name_tbl_right(int x, int y)
 }
 
 void
-ppu_draw_tile_line(int tile, int screen_x, int screen_y, int ny, int pal)
+ppu_draw_tile_line(struct window_layer *lp, int spr_idx, int tile,
+				   int scr_x, int scr_y, int ny, int pal, int hflip)
 {
 	byte low, high;
 	int i, clr;
 
-	low = ppu_getb(tile + ny % 8);
+	low  = ppu_getb(tile + ny % 8);
 	high = ppu_getb(tile + ny % 8 + 8);
 
 	for (i = 0; i < 8; i++) {
-		if (screen_x + i < 0 || screen_x + i > 255)
+		if (scr_x + i < 0 || scr_x + i > 255)
 			continue;
-		clr = color_tbl[low][high][i];
-		bg.arr[screen_y][screen_x + i] = ppu_getb(pal + clr);
+
+		clr = color_tbl[low][high][(hflip ? 7 - i : i)];
+
+		if (spr_idx != -1 && clr == 0)
+			continue;
+
+		lp->arr[scr_y][scr_x + i] = ppu_getb(pal + clr);
+
+		if (spr_idx == -1) {
+			bg_trans[scr_y][scr_x + i] = !clr;
+
+		} else if (!bg_trans[scr_y][scr_x + i] &&
+					!ppu_sprite_hit_occured) {
+
+			/* Setting sprite 0 hit */
+			ppu.PPUSTATUS |= (1 << 6);
+			ppu_sprite_hit_occured = TRUE;
+		}
 	}
 }
 
@@ -327,10 +349,10 @@ void
 ppu_draw_bg_line()
 {
 	int x, y, nx, ny;
-	int screen_x, screen_y;
+	int scr_x, scr_y;
 	word patt, name_left, name_right, att_left, att_right;
 
-	screen_y = ppu.scanline;
+	scr_y = ppu.scanline;
 	y = ppu.PPUSCROLL_Y + ppu.scanline;
 	ny = y % 240;
 
@@ -342,11 +364,11 @@ ppu_draw_bg_line()
 	att_left  = name_left  + 0x3C0;
 	att_right = name_right + 0x3C0;
 
-	for (screen_x = -ppu.PPUSCROLL_X % 8; screen_x < 256; screen_x += 8) {
+	for (scr_x = -ppu.PPUSCROLL_X % 8; scr_x < 256; scr_x += 8) {
 		word name, att, pal;
 		int tile, tile_idx;
 
-		x = screen_x + ppu.PPUSCROLL_X;
+		x = scr_x + ppu.PPUSCROLL_X;
 		nx = x % 256;
 
 		if (x < 0)
@@ -378,73 +400,58 @@ ppu_draw_bg_line()
 
 		pal = 0x3f00 + (pal % 4) * 4;
 
-		ppu_draw_tile_line(tile, screen_x, screen_y, ny, pal);
+		ppu_draw_tile_line(&bg, -1, tile, scr_x, scr_y, ny, pal, 0);
 	}
 }
 
 void
 ppu_draw_sprites_line()
 {
-	int i, j;
-	int tile_idx;
+	int spr_idx;
+	int scr_y, tile_idx;
 	byte x, y;
-	byte sprh, clr, hflip, vflip, prior;
-	byte low, high;
+	byte sprh, hflip, vflip, prior;
 	word patt, tile, pal;
 
+	scr_y = ppu.scanline;
 	sprh = (ppu.PPUCTRL & (1 << 5)) ? 16 : 8;
 	patt = ppu_spr_patt_tbl();
 
-	for (i = 0; i < 256; i += 4) {
-		y = ppu.spr_ram[i];
+	for (spr_idx = 0; spr_idx < 256; spr_idx += 4) {
+		y = ppu.spr_ram[spr_idx];
 
-		if (y > ppu.scanline || y + sprh <= ppu.scanline)
+		if (!(y <= scr_y && scr_y < y + sprh))
 			continue;
 
-		tile_idx = ppu.spr_ram[i + 1];
-		pal = 0x3f10 + (ppu.spr_ram[i + 2] & 3) * 4;
-		hflip = ppu.spr_ram[i + 2] & (1 << 6);
-		vflip = ppu.spr_ram[i + 2] & (1 << 7);
-		prior = ppu.spr_ram[i + 2] & (1 << 7);
-		x = ppu.spr_ram[i + 3];
+		tile_idx = ppu.spr_ram[spr_idx + 1];
+		pal = 0x3f10 + (ppu.spr_ram[spr_idx + 2] & 3) * 4;
+		hflip = ppu.spr_ram[spr_idx + 2] & (1 << 6);
+		vflip = ppu.spr_ram[spr_idx + 2] & (1 << 7);
+		prior = ppu.spr_ram[spr_idx + 2] & (1 << 7);
+		x = ppu.spr_ram[spr_idx + 3];
 
 		if (sprh == 16) {
 			patt = (tile_idx & 1) * 0x1000;
-			tile_idx -= tile_idx & 1;
+			/* Clearing first bit */
+			tile_idx &= ~1;
+		}
+
+		if ((scr_y - y >= 8 && vflip == 0) ||
+							(scr_y - y < 8 && vflip)) {
+			if (vflip == 0)
+				y += 8;
+			tile_idx += 1;
 		}
 
 		tile = patt + 16 * tile_idx;
 
-		if ((ppu.scanline - y >= 8 && vflip == 0) || (ppu.scanline - y < 8 && vflip)) {
-			if (vflip == 0)
-				y += 8;
-			tile += 16;
-		}
+		int ny;
+		struct window_layer *lp;
 
-		low = ppu_getb(tile + (vflip ? 15 - ppu.scanline + y : ppu.scanline - y));
-		high = ppu_getb(tile + 8 + (vflip ? 7 - ppu.scanline + y : ppu.scanline - y));
+		ny = (vflip ? (7 - scr_y + y) : (scr_y - y));
+		lp = (prior ? &spr0 : &spr1);
 
-		for (j = 0; j < 8; j++) {
-			clr = color_tbl[low][high][(hflip ? 7 - j : j)];
-
-			if (clr) {
-				int color;
-
-				color = ppu_getb(pal + clr);
-
-				if (prior)
-					spr0.arr[ppu.scanline + 1][x + j] = color;
-				else
-					spr1.arr[ppu.scanline + 1][x + j] = color;
-
-				if ((ppu.PPUMASK >> 3) & 1 && !ppu_sprite_hit_occured
-				    && i == 0 && bg.arr[x + j][ppu.scanline] != 0) {
-					/* Setting sprite 0 hit */
-					ppu.PPUSTATUS |= (1 << 6);
-					ppu_sprite_hit_occured = TRUE;
-				}
-			}
-		}
+		ppu_draw_tile_line(lp, spr_idx, tile, x, scr_y + 1, ny, pal, hflip);
 	}
 }
 
@@ -546,20 +553,29 @@ ppu_run_cycles(int n)
 void
 ppu_init()
 {
-	ppu.PPUCTRL = ppu.PPUMASK =
-		ppu.PPUSCROLL_X = ppu.PPUSCROLL_Y =
-		ppu.PPUADDR = 0;
+	ppu.PPUCTRL = 0;
+	ppu.PPUMASK = 0;
+	ppu.PPUSCROLL_X = 0;
+	ppu.PPUSCROLL_Y = 0;
+	ppu.PPUADDR = 0;
 	ppu.PPUSTATUS = (1 << 7) | (1 << 5);
+
 	ppu.ready = 0;
 	ppu.scanline = 0;
 
 	int low, high, x;
 
-#define GETCLR(low, high, x)	(((high >> (7 - (x))) & 1) << 1) | ((low >> (7 - (x))) & 1)
+	for (low = 0; low < 256; low++) {
+		for (high = 0; high < 256; high++) {
+			for (x = 0; x < 8; x++) {
+				int clr0, clr1;
 
-	for (low = 0; low < 256; low++)
-		for (high = 0; high < 256; high++)
-			for (x = 0; x < 8; x++)
-				color_tbl[low][high][x] = GETCLR((byte)low, (byte)high, x);
+				clr0 = (high >> (7 - x)) & 1;
+				clr1 = (low  >> (7 - x)) & 1;
+
+				color_tbl[low][high][x] = (clr0 << 1) | clr1;
+			}
+		}
+	}
 }
 

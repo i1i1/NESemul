@@ -261,9 +261,12 @@ static void
 op_adc()
 {
 	int res_c, res_v;
+	byte b;
 
-	res_v = (sbyte)ram_getb(cpu_addr) + reg.A + reg.P.fl.C;
-	res_c = ram_getb(cpu_addr) + (byte)reg.A + reg.P.fl.C;
+	b = ram_getb(cpu_addr);
+
+	res_v = (sbyte)b + reg.A + reg.P.fl.C;
+	res_c = b + (byte)reg.A + reg.P.fl.C;
 
 	flag_zero(res_c);
 
@@ -569,9 +572,12 @@ static void
 op_sbc()
 {
 	int res_c, res_v;
+	byte b;
 
-	res_v = reg.A - (sbyte)ram_getb(cpu_addr) - (1 - reg.P.fl.C);
-	res_c = (byte)reg.A - ram_getb(cpu_addr) - (1 - reg.P.fl.C);
+	b = ~ram_getb(cpu_addr);
+
+	res_v = (sbyte)b + reg.A + reg.P.fl.C;
+	res_c = b + (byte)reg.A + reg.P.fl.C;
 
 	flag_zero(res_c);
 
@@ -737,13 +743,15 @@ op_isc()
 
 #undef todo
 
-#define OP(hex, comm, md, cycl, ln) [(hex)] = {		\
-		.cmd	= (comm),			\
-		.cname	= 3 + #comm,			\
-		.mode	= (md),				\
-		.mname	= 10 + #md,			\
-		.cycles	= (cycl),			\
-		.len	= ln,				\
+#define OP(op, comm, md, cycl, ln) [(op)] = {	\
+		.cmd	= (comm),						\
+		/* name without "op_" */				\
+		.cname	= 3 + #comm,					\
+		.mode	= (md),							\
+		 /* mode name without "addr_mode_" */	\
+		.mname	= 10 + #md,						\
+		.cycles	= (cycl),						\
+		.len	= ln,							\
 	},
 
 struct opcode ops[256] =
