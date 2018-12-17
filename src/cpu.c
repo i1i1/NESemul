@@ -2,7 +2,7 @@
 #include "ram.h"
 #include "mapper_defs.h"
 #include "mmc0.h"
-#include "mmc2.h"
+#include "uxrom.h"
 
 #include "opcodes.h"
 
@@ -19,7 +19,7 @@ int cpu_cycles;
 
 struct mapper map[256] = {
 	MAP(0, mmc0_init, mmc0_getb, mmc0_setb)
-	MAP(2, mmc2_init, mmc2_getb, mmc2_setb)
+	MAP(2, uxrom_init, uxrom_getb, uxrom_setb)
 };
 
 #undef MAP

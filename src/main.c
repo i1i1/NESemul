@@ -124,7 +124,7 @@ main_loop()
 	cpu_cycles = (int)CPU_CYCLES_P_SCANLINE;
 	ppu_cycles = 1;
 
-	dsttm = cpu_cycles * 1000 * 262 / CPU_FREQ;
+	dsttm = 1000/WINDOW_FRAME_PS;
 
 	for (;;) {
 		curtm = SDL_GetTicks();
@@ -141,6 +141,8 @@ main_loop()
 
 		if (curtm < dsttm)
 			SDL_Delay(dsttm - curtm);
+
+		fprintf(stderr, "time: %3ld\n", (long)curtm - (long)dsttm);
 	}
 }
 

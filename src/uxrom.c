@@ -2,12 +2,12 @@
 
 #include "common.h"
 #include "mapper_defs.h"
-#include "mmc2.h"
+#include "uxrom.h"
 #include "cpu.h"
 #include "ram.h"
 
 void
-mmc2_init()
+uxrom_init()
 {
 	prg_rom.low = 0;
 	prg_rom.up = prg_rom.n - 1;
@@ -16,13 +16,13 @@ mmc2_init()
 }
 
 byte
-mmc2_getb(word addr)
+uxrom_getb(word addr)
 {
 	return ram_general_getb(addr);
 }
 
 void
-mmc2_setb(word addr, byte b)
+uxrom_setb(word addr, byte b)
 {
 	if (addr < 0x8000)
 		ram_general_setb(addr, b);
