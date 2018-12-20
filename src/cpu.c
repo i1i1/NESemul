@@ -69,7 +69,7 @@ cpu_run_cycles(int n)
 {
 	byte op;
 
-	printf("In cpu!\n");
+//	printf("In cpu!\n");
 	while (n > 0) {
 		printinfo();
 

@@ -41,6 +41,8 @@ fullclean: clean
 .SECONDARY: $(dep)
 
 ifneq "$(MAKECMDGOALS)" "clean"
+ifneq "$(MAKECMDGOALS)" "fullclean"
 -include $(dep)
+endif
 endif
 

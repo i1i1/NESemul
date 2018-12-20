@@ -13,7 +13,16 @@ word cpu_addr;
 void
 addr_mode_ind()
 {
-	cpu_addr = ram_getw(ram_getw(reg.PC));
+	word a;
+
+	a = ram_getw(reg.PC);
+
+	/* Bug implementation! */
+	if (a % 0x100 == 0xFF)
+		cpu_addr = (ram_getb(a & 0xFF00) << 8) | ram_getb(a);
+	else
+		cpu_addr = ram_getw(a);
+
 	reg.PC += 2;
 }
 
@@ -41,14 +50,31 @@ addr_mode_zpy()
 void
 addr_mode_izx()
 {
-	cpu_addr = ram_getw((byte)(ram_getb(reg.PC) + reg.X));
+	byte a;
+	byte low, high;
+
+	a = ram_getb(reg.PC);
+	high = ram_getb((byte)(a + reg.X + 1));
+	low = ram_getb((byte)(a + reg.X));
+	cpu_addr = (high << 8) | low;
+	printf("izx addr %04x\n", cpu_addr);
+
 	reg.PC++;
 }
 
 void
 addr_mode_izy()
 {
-	cpu_addr = ram_getw(ram_getb(reg.PC)) + reg.Y;
+	byte a;
+	byte low, high;
+
+	a = ram_getb(reg.PC);
+	high = ram_getb((byte)(a + 1));
+	low = ram_getb(a);
+	cpu_addr = ((high << 8) | low) + reg.Y;
+
+	printf("izy addr %04x\n", cpu_addr);
+
 	reg.PC++;
 }
 

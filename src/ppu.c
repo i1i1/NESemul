@@ -4,6 +4,7 @@
 #include "ppu.h"
 #include "window.h"
 
+int p_x, p_y;
 
 struct ppu ppu;
 
@@ -87,6 +88,8 @@ int color_tbl[256][256][8];
 byte ppu_sprite_hit_occured;
 
 int bg_trans[256][256];
+int bg_tiles[30][32];
+int bg_pals[15][16];
 
 
 byte
@@ -157,13 +160,15 @@ ppu_get_addr(word a)
 		return a;
 
 	/* Some nametable mirroring */
-	if (ppu.vmap)
+	if (ppu.vmap) {
 		a = 0x2000 + a % 0x800;
-	else
+
+	} else {
 		if (0x2000 <= a && a < 0x2800)
 			a = 0x2000 + a % 0x400;
 		else
 			a = 0x2800 + a % 0x400;
+	}
 
 	return a;
 }
@@ -171,8 +176,14 @@ ppu_get_addr(word a)
 void
 ppu_setb(word a, byte b)
 {
-	printf("Real addr equals to %04x!\n", ppu_get_addr(a));
-	ppu.ram[ppu_get_addr(a)] = b;
+	a = ppu_get_addr(a);
+
+	printf("Real addr equals to %04x!\n", a);
+
+	if (a < 0x2000 && chr_rom.n)
+		chr_rom.bank[chr_rom.cur][a] = b;
+	else
+		ppu.ram[a] = b;
 }
 
 byte
@@ -205,8 +216,8 @@ ppu_reg_set(word addr, byte b)
 		break;
 	case PPUSCROLL:
 		switch (ppu.scroll) {
-		case 0:  ppu.PPUSCROLL_X = b;
-		case 1:  ppu.PPUSCROLL_Y = b;
+		case 0:  p_x = ppu.PPUSCROLL_X; ppu.PPUSCROLL_X = b; break;
+		case 1:  p_y = ppu.PPUSCROLL_Y; ppu.PPUSCROLL_Y = b; break;
 		default: break;
 		}
 
@@ -282,33 +293,41 @@ ppu_spr_patt_tbl()
 word
 ppu_get_name_tbl_left(int x, int y)
 {
+	int idx;
+
 	y %= 460;
 	x %= 512;
 
+	idx = ppu.PPUCTRL & 3;
+
 	if (y < 240 && x < 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0x000) % 0x1000;
-	else if (y < 240 && x >= 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0x400) % 0x1000;
+		return 0x2000 + (idx ^ 0) * 0x400 % 0x1000;
+	else if (y <  240 && x >= 256)
+		return 0x2000 + (idx ^ 1) * 0x400 % 0x1000;
 	else if (y >= 240 && x < 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0x800) % 0x1000;
-	else//if (y >= 240 && x >= 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0xc00) % 0x1000;
+		return 0x2000 + (idx ^ 2) * 0x400 % 0x1000;
+	else//if (y >= 240 & x >= 256)
+		return 0x2000 + (idx ^ 3) * 0x400 % 0x1000;
 }
 
 word
 ppu_get_name_tbl_right(int x, int y)
 {
+	int idx;
+
 	y %= 460;
 	x %= 512;
 
+	idx = ppu.PPUCTRL & 3;
+
 	if (y < 240 && x < 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0x400) % 0x1000;
-	else if (y < 240 && x >= 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0x800) % 0x1000;
+		return 0x2000 + (idx ^ 1) * 0x400 % 0x1000;
+	else if (y <  240 && x >= 256)
+		return 0x2000 + (idx ^ 2) * 0x400 % 0x1000;
 	else if (y >= 240 && x < 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0xc00) % 0x1000;
-	else//if (y >= 240 && x >= 256)
-		return 0x2000 + ((ppu.PPUCTRL & 3) * 0x400 + 0x000) % 0x1000;
+		return 0x2000 + (idx ^ 3) * 0x400 % 0x1000;
+	else//if (y >= 240 & x >= 256)
+		return 0x2000 + (idx ^ 0) * 0x400 % 0x1000;
 }
 
 void
@@ -335,7 +354,7 @@ ppu_draw_tile_line(struct window_layer *lp, int spr_idx, int tile,
 		if (spr_idx == -1) {
 			bg_trans[scr_y][scr_x + i] = !clr;
 
-		} else if (!bg_trans[scr_y][scr_x + i] &&
+		} else if (spr_idx == 0 && !bg_trans[scr_y][scr_x + i] &&
 					!ppu_sprite_hit_occured) {
 
 			/* Setting sprite 0 hit */
@@ -399,7 +418,8 @@ ppu_draw_bg_line()
 			pal >>= 2;
 
 		pal = 0x3f00 + (pal % 4) * 4;
-
+//		bg_tiles[scr_y/8][scr_x/8] = tile_idx;
+//		bg_pals[scr_y/16][scr_x/16] = pal;
 		ppu_draw_tile_line(&bg, -1, tile, scr_x, scr_y, ny, pal, 0);
 	}
 }
@@ -492,6 +512,20 @@ ppu_print_data()
 }
 
 void
+ppu_print_bg_tiles()
+{
+	int x, y;
+
+	fprintf(stderr, "\nTiles:\n");
+
+	for (y = 0; y < 30; y++) {
+		for (x = 0; x < 32; x++)
+			fprintf(stderr, "[%03x] = %02x (%x %x)\n", y * 32 + x, bg_tiles[y][x], y, x);
+	}
+	fprintf(stderr, "\n");
+}
+
+void
 ppu_run_cycle()
 {
 	printf("Start of scanline %d\n", ppu.scanline);
@@ -536,6 +570,7 @@ ppu_run_cycle()
 //		printf("Drawing screen\n");
 		ppu_draw_screen();
 //		ppu_print_data();
+//		ppu_print_bg_tiles();
 		ppu.scanline = -1;
 		ppu_sprite_hit_occured = FALSE;
 	}

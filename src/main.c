@@ -26,11 +26,12 @@ die(const char *msg)
 void
 printhdr(struct ines_header *hdr)
 {
-	printf("\nInfo:\n");
-	printf("\tPRG-ROM - %d * 16 Kb\n", hdr->prg_rom_num);
-	printf("\tCHR-ROM - %d * 8 Kb\n", hdr->chr_rom_num);
-	printf("\tPRG-RAM - %d * 8 Kb\n", hdr->prg_ram_num);
-	printf("\tVertical - %d\n", ppu.vmap);
+	fprintf(stderr, "\nInfo:\n");
+	fprintf(stderr, "\tMapper   - %d\n", mapper);
+	fprintf(stderr, "\tPRG-ROM  - %d * 16 Kb\n", hdr->prg_rom_num);
+	fprintf(stderr, "\tCHR-ROM  - %d * 8 Kb\n", hdr->chr_rom_num);
+	fprintf(stderr, "\tPRG-RAM  - %d * 8 Kb\n", hdr->prg_ram_num);
+	fprintf(stderr, "\tVertical - %d\n", ppu.vmap);
 
 	(void) hdr;
 }
@@ -130,8 +131,8 @@ main_loop()
 		curtm = SDL_GetTicks();
 
 		for (i = 0; i < 262; i++) {
-			ppu_run_cycles(ppu_cycles);
 			cpu_run_cycles(cpu_cycles);
+			ppu_run_cycles(ppu_cycles);
 		}
 
 		if (window_event_exit())

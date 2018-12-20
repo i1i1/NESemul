@@ -14,19 +14,13 @@
 static void
 flag_neg(sbyte n)
 {
-	if (n < 0)
-		reg.P.fl.N = 1;
-	else
-		reg.P.fl.N = 0;
+	reg.P.fl.N = (n < 0 ? 1 : 0);
 }
 
 static void
 flag_zero(sbyte n)
 {
-	if (n == 0)
-		reg.P.fl.Z = 1;
-	else
-		reg.P.fl.Z = 0;
+	reg.P.fl.Z = (n == 0 ? 1 : 0);
 }
 
 
@@ -268,18 +262,9 @@ op_adc()
 	res_v = (sbyte)b + reg.A + reg.P.fl.C;
 	res_c = b + (byte)reg.A + reg.P.fl.C;
 
+	reg.P.fl.C = (res_c > 0xFF ? 1 : 0);
+	reg.P.fl.V = ((-128 < res_v && res_v > 127) ? 1 : 0);
 	flag_zero(res_c);
-
-	if (res_c > 0xFF)
-		reg.P.fl.C = 1;
-	else
-		reg.P.fl.C = 0;
-
-	if (-128 < res_v && res_v > 127)
-		reg.P.fl.V = 1;
-	else
-		reg.P.fl.V = 0;
-
 	flag_neg(res_v);
 
 	reg.A = res_v;
@@ -309,8 +294,7 @@ op_ror_a()
 	int c;
 
 	c = reg.A % 2;
-	reg.A = (byte)reg.A >> 1;
-	reg.A |= reg.P.fl.C << 7;
+	reg.A = ((byte)reg.A >> 1) | reg.P.fl.C << 7;
 	reg.P.fl.C = c;
 
 	flag_neg(reg.A);
@@ -345,13 +329,13 @@ op_sta()
 static void
 op_stx()
 {
-	ram_setb(cpu_addr, reg.X);
+	ram_setb(cpu_addr, (byte)reg.X);
 }
 
 static void
 op_sty()
 {
-	ram_setb(cpu_addr, reg.Y);
+	ram_setb(cpu_addr, (byte)reg.Y);
 }
 
 static void
@@ -579,18 +563,9 @@ op_sbc()
 	res_v = (sbyte)b + reg.A + reg.P.fl.C;
 	res_c = b + (byte)reg.A + reg.P.fl.C;
 
+	reg.P.fl.C = (res_c > 0xFF ? 1 : 0);
+	reg.P.fl.V = ((-128 < res_v && res_v > 127) ? 1 : 0);
 	flag_zero(res_c);
-
-	if (res_c > 0xFF)
-		reg.P.fl.C = 1;
-	else
-		reg.P.fl.C = 0;
-
-	if (-128 < res_v && res_v > 127)
-		reg.P.fl.V = 1;
-	else
-		reg.P.fl.V = 0;
-
 	flag_neg(res_v);
 
 	reg.A = res_v;
