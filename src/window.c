@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 
 #include "ppu.h"
+#include "ram.h"
 #include "window.h"
 #include "common.h"
 
@@ -318,27 +319,6 @@ window_draw_pals()
 
 	for (i = 0; i < 15; i++) {
 		for (j = 0; j < 16; j++) {
-			int n;
-			int t;
-
-			t = 4;
-
-			n = bg_tiles[i*2][j*2];
-			if (n == 0 || n == 0x5F)
-				t--;
-			n = bg_tiles[i*2][j*2+1];
-			if (n == 0 || n == 0x5F)
-				t--;
-			n = bg_tiles[i*2+1][j*2];
-			if (n == 0 || n == 0x5F)
-				t--;
-			n = bg_tiles[i*2+1][j*2+1];
-			if (n == 0 || n == 0x5F)
-				t--;
-
-			if (t == 0)
-				continue;
-
 			for (k = 0; k < 4; k++) {
 				struct color c;
 				extern int bg_pals[15][16];
@@ -375,10 +355,10 @@ window_draw_borders()
 		if (n % 16)
 			continue;
 
-		SDL_RenderDrawLine(renderer, 0, i * 8 * WINDOW_PXL_SZ + 1,
-						WINDOW_SURW * WINDOW_PXL_SZ, i * 8 * WINDOW_PXL_SZ + 1);
-		SDL_RenderDrawLine(renderer, 0, i * 8 * WINDOW_PXL_SZ - 1,
-						WINDOW_SURW * WINDOW_PXL_SZ, i * 8 * WINDOW_PXL_SZ - 1);
+		SDL_RenderDrawLine(renderer, 0, i * WINDOW_PXL_SZ + 1,
+						WINDOW_SURW * WINDOW_PXL_SZ, i * WINDOW_PXL_SZ + 1);
+		SDL_RenderDrawLine(renderer, 0, i * WINDOW_PXL_SZ - 1,
+						WINDOW_SURW * WINDOW_PXL_SZ, i * WINDOW_PXL_SZ - 1);
 	}
 
 	for (i = 0; i < WINDOW_SURW; i++) {
@@ -434,7 +414,7 @@ window_set_to_layer(struct window_layer *lp)
 	}
 //	window_draw_bgtiles();
 //	window_draw_pals();
-	window_draw_borders();
+//	window_draw_borders();
 }
 
 void

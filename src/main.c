@@ -26,25 +26,46 @@ die(const char *msg)
 void
 printhdr(struct ines_header *hdr)
 {
+	char *mirroring;
+
+	mirroring = (ppu.vmap ? "Vertical" : "Horizontal");
+
 	fprintf(stderr, "\nInfo:\n");
 	fprintf(stderr, "\tMapper   - %d\n", mapper);
 	fprintf(stderr, "\tPRG-ROM  - %d * 16 Kb\n", hdr->prg_rom_num);
 	fprintf(stderr, "\tCHR-ROM  - %d * 8 Kb\n", hdr->chr_rom_num);
 	fprintf(stderr, "\tPRG-RAM  - %d * 8 Kb\n", hdr->prg_ram_num);
-	fprintf(stderr, "\tVertical - %d\n", ppu.vmap);
+	fprintf(stderr, "\tMirroring - %s\n", mirroring);
+}
 
-	(void) hdr;
+char
+agetc(FILE *fp)
+{
+	int c;
+
+	if ((c = fgetc(fp)) == EOF)
+		die("Unexpected EOF");
+
+	return c;
 }
 
 void
 load_header(FILE *fp, struct ines_header *hdr)
 {
-	int ret;
+	int i;
 
-	ret = fread(hdr, 1, sizeof(struct ines_header), fp);
+	for (i = 0; i < 4; i++)
+		hdr->magick[i] = agetc(fp);
 
-	if (ret == 0 && ferror(fp))
-		die("Wrong format of file!");
+	hdr->prg_rom_num = agetc(fp);
+	hdr->chr_rom_num = agetc(fp);
+	hdr->flag6 = agetc(fp);
+	hdr->flag7 = agetc(fp);
+	hdr->prg_ram_num = agetc(fp);
+	hdr->flag9 = agetc(fp);
+
+	for (i = 0; i < 6; i++)
+		hdr->res[i] = agetc(fp);
 
 	if (strncmp((char *)hdr->magick, "NES\x1A", 4) != 0)
 		die("Wrong magick number!");
@@ -143,7 +164,7 @@ main_loop()
 		if (curtm < dsttm)
 			SDL_Delay(dsttm - curtm);
 
-		fprintf(stderr, "time: %3ld\n", (long)curtm - (long)dsttm);
+//		fprintf(stderr, "time: %3ld\n", (long)curtm - (long)dsttm);
 	}
 }
 

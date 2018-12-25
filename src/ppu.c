@@ -148,11 +148,15 @@ ppu_get_addr(word a)
 	if (0x3f20 <= a)
 		a = 0x3f00 + a % 0x20;
 
-	if (a == 0x3f10 || a == 0x3f14 || a == 0x3f18 || a == 0x3f1c)
-		a -= 0x10;
+	if (a == 0x3f04 || a == 0x3f08 || a == 0x3f0c ||
+		a == 0x3f14 || a == 0x3f18 || a == 0x3f1c)
+		a = 0x3f00;
+
+	if (a >= 0x3f00)
+		return a;
 
 	/* Mirroring */
-	if (0x3000 <= a && a < 0x3f00)
+	if (0x3000 <= a)
 		a = 0x2000 + a % 0x1000;
 
 	/* If not a nametable */
@@ -162,7 +166,6 @@ ppu_get_addr(word a)
 	/* Some nametable mirroring */
 	if (ppu.vmap) {
 		a = 0x2000 + a % 0x800;
-
 	} else {
 		if (0x2000 <= a && a < 0x2800)
 			a = 0x2000 + a % 0x400;
@@ -176,14 +179,16 @@ ppu_get_addr(word a)
 void
 ppu_setb(word a, byte b)
 {
+	if (a >= 0x3f00)
+		a = 0x3f00 + a % 0x20;
+	if (a == 0x3f04 || a == 0x3f08 || a == 0x3f0c ||
+		a == 0x3f14 || a == 0x3f18 || a == 0x3f1c)
+		return;
+
 	a = ppu_get_addr(a);
 
 	printf("Real addr equals to %04x!\n", a);
-
-	if (a < 0x2000 && chr_rom.n)
-		chr_rom.bank[chr_rom.cur][a] = b;
-	else
-		ppu.ram[a] = b;
+	ppu.ram[a] = b;
 }
 
 byte
@@ -442,6 +447,8 @@ ppu_draw_sprites_line()
 
 		if (!(y <= scr_y && scr_y < y + sprh))
 			continue;
+
+		printf("Printing sprite %02x\n", spr_idx / 4);
 
 		tile_idx = ppu.spr_ram[spr_idx + 1];
 		pal = 0x3f10 + (ppu.spr_ram[spr_idx + 2] & 3) * 4;
