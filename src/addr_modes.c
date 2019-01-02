@@ -57,7 +57,7 @@ addr_mode_izx()
 	high = ram_getb((byte)(a + reg.X + 1));
 	low = ram_getb((byte)(a + reg.X));
 	cpu_addr = (high << 8) | low;
-	printf("izx addr %04x\n", cpu_addr);
+//	printf("izx addr %04x\n", cpu_addr);
 
 	reg.PC++;
 }
@@ -73,7 +73,7 @@ addr_mode_izy()
 	low = ram_getb(a);
 	cpu_addr = ((high << 8) | low) + reg.Y;
 
-	printf("izy addr %04x\n", cpu_addr);
+//	printf("izy addr %04x\n", cpu_addr);
 
 	reg.PC++;
 }

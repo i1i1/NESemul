@@ -47,6 +47,7 @@ ram_setb(word addr, byte b)
 void
 ram_general_setb(word addr, byte b)
 {
+#if 0
 	if (0x200 <= addr && addr < 0x300) {
 		printf("\nSet Sprite $%02x ", (addr - 0x200) >> 2);
 
@@ -67,6 +68,7 @@ ram_general_setb(word addr, byte b)
 
 		printf(" to 0x%02x\n\n", b);
 	}
+#endif
 
 	if	(cpu_is_reg(addr))
 		ppu_reg_set(addr, b);

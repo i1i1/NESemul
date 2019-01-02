@@ -4,7 +4,9 @@
 #include "ppu.h"
 #include "window.h"
 
+
 int p_x, p_y;
+int vblank;
 
 struct ppu ppu;
 
@@ -100,7 +102,7 @@ ppu_reg_get(word addr)
 	if (addr < 0x4000)
 		addr = 0x2000 + (addr - 0x2000) % 8;
 
-	printf("Accessing %04x register\n", addr);
+//	printf("Accessing %04x register\n", addr);
 
 	switch (addr) {
 	case PPUSTATUS:
@@ -119,6 +121,8 @@ ppu_reg_get(word addr)
 
 		return ret;
 	case OAMDATA:
+		if (vblank)
+			return ppu.spr_ram[ppu.OAMADDR];
 		return ppu.spr_ram[ppu.OAMADDR++];
 	/* Joystick 1 */
 	case 0x4016:
@@ -133,10 +137,12 @@ ppu_reg_get(word addr)
 void
 ppu_load_spr_ram(word addr)
 {
-	int i;
+	int i, idx;
 
-	for (i = 0; i < 0x100; i++)
-		ppu.spr_ram[i] = ram_getb(addr + i);
+	for (i = 0; i < 0x100; i++) {
+		idx = (ppu.OAMADDR + i) % 0x100;
+		ppu.spr_ram[idx] = ram_getb(addr + i);
+	}
 }
 
 word
@@ -148,7 +154,7 @@ ppu_get_addr(word a)
 	if (0x3f20 <= a)
 		a = 0x3f00 + a % 0x20;
 
-	if (a == 0x3f04 || a == 0x3f08 || a == 0x3f0c ||
+	if (a == 0x3f04 || a == 0x3f08 || a == 0x3f0c || a == 0x3f10 ||
 		a == 0x3f14 || a == 0x3f18 || a == 0x3f1c)
 		a = 0x3f00;
 
@@ -187,7 +193,7 @@ ppu_setb(word a, byte b)
 
 	a = ppu_get_addr(a);
 
-	printf("Real addr equals to %04x!\n", a);
+//	printf("Real addr equals to %04x!\n", a);
 	ppu.ram[a] = b;
 }
 
@@ -213,7 +219,7 @@ ppu_reg_set(word addr, byte b)
 	if (0x2000 <= addr && addr < 0x4000)
 		addr = 0x2000 + addr % 8;
 
-	printf("Setting reg %04x to %02x\n", addr, b);
+//	printf("Setting reg %04x to %02x\n", addr, b);
 
 	switch (addr) {
 	case OAMDMA:
@@ -448,7 +454,7 @@ ppu_draw_sprites_line()
 		if (!(y <= scr_y && scr_y < y + sprh))
 			continue;
 
-		printf("Printing sprite %02x\n", spr_idx / 4);
+//		printf("Printing sprite %02x\n", spr_idx / 4);
 
 		tile_idx = ppu.spr_ram[spr_idx + 1];
 		pal = 0x3f10 + (ppu.spr_ram[spr_idx + 2] & 3) * 4;
@@ -509,12 +515,13 @@ ppu_print_data()
 {
 	int i, j;
 
-	printf("\n\nPPU memory\n");
+//	printf("\n\nPPU memory\n");
 	for (i = 0x2000; i < 0x2400; i += 0x10) {
-		printf("%04x:\t", i);
-		for (j = 0; j < 0x10; j++)
-			printf("%02x ", ppu_getb(i + j));
-		printf("\n");
+//		printf("%04x:\t", i);
+		for (j = 0; j < 0x10; j++) {
+//			printf("%02x ", ppu_getb(i + j));
+		}
+//		printf("\n");
 	}
 }
 
@@ -523,19 +530,20 @@ ppu_print_bg_tiles()
 {
 	int x, y;
 
-	fprintf(stderr, "\nTiles:\n");
+//	fprintf(stderr, "\nTiles:\n");
 
 	for (y = 0; y < 30; y++) {
-		for (x = 0; x < 32; x++)
-			fprintf(stderr, "[%03x] = %02x (%x %x)\n", y * 32 + x, bg_tiles[y][x], y, x);
+		for (x = 0; x < 32; x++) {
+//			fprintf(stderr, "[%03x] = %02x (%x %x)\n", y * 32 + x, bg_tiles[y][x], y, x);
+		}
 	}
-	fprintf(stderr, "\n");
+//	fprintf(stderr, "\n");
 }
 
 void
 ppu_run_cycle()
 {
-	printf("Start of scanline %d\n", ppu.scanline);
+//	printf("Start of scanline %d\n", ppu.scanline);
 
 	if (!ppu.ready && cpu_cycles > 29658)
 		ppu.ready = 1;
@@ -558,6 +566,7 @@ ppu_run_cycle()
 		/* Start of Vblank! */
 
 		/* In vblank = True */
+		vblank = 1;
 		ppu.PPUSTATUS |=  (1 << 7);
 		/* In Sprite-0 hit = False */
 		ppu.PPUSTATUS &= ~(1 << 6);
@@ -571,6 +580,7 @@ ppu_run_cycle()
 	}
 	else if (ppu.scanline == 261) {
 		/* Dummy scanline */
+		vblank = 0;
 
 		/* In vblank = False */
 		ppu.PPUSTATUS &= ~(1 << 7);

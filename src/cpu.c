@@ -18,8 +18,8 @@ int cpu_cycles;
 	},
 
 struct mapper map[256] = {
-	MAP(0, mmc0_init, mmc0_getb, mmc0_setb)
-	MAP(2, uxrom_init, uxrom_getb, uxrom_setb)
+	MAP(  0,  mmc0_init,  mmc0_getb,  mmc0_setb)
+	MAP(  2, uxrom_init, uxrom_getb, uxrom_setb)
 };
 
 #undef MAP
@@ -30,12 +30,12 @@ printinfo()
 {
 	byte op, i;
 
-	printf("%04x:\t", reg.PC);
+	printf("%04X:\t", reg.PC);
 
 	op = ram_getb(reg.PC);
 
 	for (i = 0; i < ops[op].len; i++)
-		printf(" %02x", ram_getb(reg.PC + i));
+		printf(" %02X", ram_getb(reg.PC + i));
 
 	if (ops[op].len == 1)
 		printf("\t\t");
@@ -52,16 +52,13 @@ printinfo()
 	printf(" ");
 
 	for (i = ops[op].len-1; i > 0; i--)
-		printf("%02x", ram_getb(reg.PC + i));
+		printf("%02X", ram_getb(reg.PC + i));
 
 	if (ops[op].len != 3)
 		printf("\t");
 
-	printf("\t(A=%02x;\tX=%02x;\tY=%02x;\tSP=%02x) "
-	       "(P=%02x; .C=%d .Z=%d .O=%d .N=%d)\n",
-	       (byte)reg.A, reg.X, reg.Y, reg.SP,
-	       reg.P.n, reg.P.fl.C, reg.P.fl.Z,
-	       reg.P.fl.V, reg.P.fl.N);
+	printf("\tA:%02X X:%02X Y:%02X P:%02X SP:%02X\n",
+	       (byte)reg.A, reg.X, reg.Y, reg.P.n, reg.SP);
 }
 
 void
@@ -96,7 +93,10 @@ cpu_init()
 
 	reg.SP = 0xFD;
 	reg.A = reg.X = reg.Y = 0;
+
 	reg.P.n = 0;
+	reg.P.fl.I = 1;
+	reg.P.fl.RES = 1;
 
 	if (map[mapper].init)
 		map[mapper].init();
@@ -116,7 +116,7 @@ cpu_is_reg(word addr)
 void
 cpu_irq()
 {
-	printf("\nIRQ Occured!\n\n");
+//	printf("\nIRQ Occured!\n\n");
 
 	ram_pushw(reg.PC);
 	ram_pushb(reg.P.n);
@@ -129,7 +129,7 @@ cpu_irq()
 void
 cpu_nmi()
 {
-	printf("\nNMI Occured!\n\n");
+//	printf("\nNMI Occured!\n\n");
 
 	ram_pushw(reg.PC);
 	ram_pushb(reg.P.n);

@@ -38,9 +38,7 @@ int joy_gamepad_keys[] = {
 void
 window_init()
 {
-	SDL_Init(SDL_INIT_VIDEO);
-	SDL_Init(SDL_INIT_TIMER);
-	SDL_Init(SDL_INIT_GAMECONTROLLER);
+	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMECONTROLLER);
 	SDL_CreateWindowAndRenderer(WINDOW_SURW * WINDOW_PXL_SZ,
 									(WINDOW_SURH - 16) * WINDOW_PXL_SZ,
 										0, &window, &renderer);
@@ -95,9 +93,12 @@ window_draw_bgtiles()
 #define W w,w,w,w,
 
 	int i, j;
-	struct color b, w;
-	extern int bg_tiles[30][32];
 	SDL_Rect tmp;
+	extern int bg_tiles[30][32];
+
+	struct color b, w;
+	b.r = b.g = b.b = 255;
+	w.r = w.g = w.b = 0;
 	struct color arr[16][40][20] = {
 		[0] = {
 			ROW({ W W W W W })
@@ -260,9 +261,6 @@ window_draw_bgtiles()
 			ROW({ W W W W W })
 		},
 	};
-
-	b.r = b.g = b.b = 255;
-	w.r = w.g = w.b = 0;
 
 	tmp.h = tmp.w = 4;
 

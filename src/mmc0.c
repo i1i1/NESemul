@@ -10,7 +10,7 @@ mmc0_init()
 	prg_rom.low = 0;
 	prg_rom.up = prg_rom.n - 1;
 	chr_rom.cur = 0;
-	printf("\tMapper 0!\n\n");
+	dprintf("\tMapper 0!\n\n");
 }
 
 byte
